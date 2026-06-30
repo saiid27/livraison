@@ -2,7 +2,7 @@ class AppConstants {
   static const String appName = 'DeliveryApp';
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5001/api',
+    defaultValue: 'https://livraison-o0ns.onrender.com/api',
   );
   static const String tokenKey = 'auth_token';
   static const String userRoleKey = 'user_role';
