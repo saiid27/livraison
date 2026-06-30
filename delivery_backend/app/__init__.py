@@ -44,6 +44,11 @@ def create_app():
     app.register_blueprint(livreur_bp, url_prefix='/api/livreur')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
+    @app.route('/api/health')
+    def health():
+        db.session.execute(text('SELECT 1'))
+        return jsonify({'status': 'ok'}), 200
+
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)

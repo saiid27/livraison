@@ -1,6 +1,9 @@
 class AppConstants {
   static const String appName = 'DeliveryApp';
-  static const String baseUrl = 'http://10.0.2.2:5001/api'; // Android emulator
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:5001/api',
+  );
   static const String tokenKey = 'auth_token';
   static const String userRoleKey = 'user_role';
   static const String userIdKey = 'user_id';

@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: mayahsar-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    rootDir: delivery_backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT run:app
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mayahsar-db
+          property: connectionString
+
+databases:
+  - name: mayahsar-db
+    plan: free
+    region: frankfurt
+    databaseName: mayahsar
+    user: mayahsar
+    ipAllowList: []
