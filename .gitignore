@@ -1,0 +1,28 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.claude/
+
+# Python
+**/venv/
+**/.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Backend runtime data
+delivery_backend/instance/
+delivery_backend/uploads/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+*.iml
+*.swp
+
+# Logs
+*.log
