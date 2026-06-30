@@ -55,7 +55,7 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
       return;
     }
 
-    final success = await ref
+    final orderId = await ref
         .read(orderProvider.notifier)
         .createOrder(
           description: _descCtrl.text.trim(),
@@ -63,17 +63,8 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
           deliveryAddress: _deliveryCtrl.text.trim(),
           serviceType: widget.serviceType,
         );
-    if (success && mounted) {
-      final isAr = ref.read(localeProvider).languageCode == 'ar';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isAr ? 'تم إنشاء الطلب بنجاح!' : 'Commande créée avec succès !',
-          ),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      context.go('/client/orders');
+    if (orderId != null && mounted) {
+      context.go('/client/order-search/$orderId');
     }
   }
 

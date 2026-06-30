@@ -154,6 +154,24 @@ abstract class AppStrings {
   String get navProfile;
   String get navDeliveries;
   String get navDashboard;
+
+  // Broadcast / Search
+  String get searchingCaptain;
+  String get broadcastAttempt;
+  String get broadcastPause;
+  String get broadcastExpired;
+  String get noCaptainAvailable;
+  String get contactCompany;
+  String get captainFound;
+  String get captainPhone;
+
+  // Wallet
+  String get myBalance;
+  String get reloadBalance;
+  String get walletTitle;
+  String get commissionRate;
+  String get insufficientBalance;
+  String get insufficientBalanceMsg;
 }
 
 // ── French ──────────────────────────────────────────────────────────────────
@@ -300,6 +318,22 @@ class FrStrings extends AppStrings {
   @override String get navProfile => 'Profil';
   @override String get navDeliveries => 'Livraisons';
   @override String get navDashboard => 'Dashboard';
+
+  @override String get searchingCaptain => 'Recherche d\'un capitaine...';
+  @override String get broadcastAttempt => 'Tentative';
+  @override String get broadcastPause => 'Pause avant la prochaine tentative';
+  @override String get broadcastExpired => 'Aucun capitaine n\'a répondu';
+  @override String get noCaptainAvailable => 'Aucun capitaine n\'est actuellement disponible à proximité de votre position. Veuillez contacter la société.';
+  @override String get contactCompany => 'Contacter la société';
+  @override String get captainFound => 'Capitaine trouvé !';
+  @override String get captainPhone => 'Téléphone';
+
+  @override String get myBalance => 'Mon solde';
+  @override String get reloadBalance => 'Recharger le solde';
+  @override String get walletTitle => 'Portefeuille';
+  @override String get commissionRate => 'Commission plateforme : 9%';
+  @override String get insufficientBalance => 'Solde insuffisant';
+  @override String get insufficientBalanceMsg => 'Votre solde est insuffisant pour accepter cette commande. Rechargez votre portefeuille.';
 }
 
 // ── Arabic ───────────────────────────────────────────────────────────────────
@@ -446,4 +480,20 @@ class ArStrings extends AppStrings {
   @override String get navProfile => 'ملفي';
   @override String get navDeliveries => 'التوصيلات';
   @override String get navDashboard => 'الرئيسية';
+
+  @override String get searchingCaptain => '...جارٍ البحث عن كابتن';
+  @override String get broadcastAttempt => 'محاولة';
+  @override String get broadcastPause => 'توقف مؤقت قبل المحاولة التالية';
+  @override String get broadcastExpired => 'لم يستجب أي كابتن';
+  @override String get noCaptainAvailable => 'لا يوجد حالياً أي كابتن متاح بالقرب من موقعك. يرجى التواصل مع الشركة.';
+  @override String get contactCompany => 'التواصل مع الشركة';
+  @override String get captainFound => '!تم العثور على كابتن';
+  @override String get captainPhone => 'الهاتف';
+
+  @override String get myBalance => 'رصيدي';
+  @override String get reloadBalance => 'شحن الرصيد';
+  @override String get walletTitle => 'المحفظة';
+  @override String get commissionRate => 'عمولة المنصة: 9%';
+  @override String get insufficientBalance => 'رصيد غير كافٍ';
+  @override String get insufficientBalanceMsg => 'رصيدك غير كافٍ لقبول هذا الطلب. يرجى شحن محفظتك.';
 }

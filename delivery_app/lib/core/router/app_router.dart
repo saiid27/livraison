@@ -12,8 +12,10 @@ import '../../features/client/presentation/pages/client_orders_page.dart';
 import '../../features/client/presentation/pages/client_new_order_page.dart';
 import '../../features/client/presentation/pages/client_track_page.dart';
 import '../../features/client/presentation/pages/client_profile_page.dart';
+import '../../features/client/presentation/pages/client_order_search_page.dart';
 import '../../features/livreur/presentation/pages/livreur_home_page.dart';
 import '../../features/livreur/presentation/pages/livreur_profile_page.dart';
+import '../../features/livreur/presentation/pages/livreur_wallet_page.dart';
 import '../../features/admin/presentation/pages/admin_home_page.dart';
 import '../../features/admin/presentation/pages/admin_orders_page.dart';
 import '../../features/admin/presentation/pages/admin_users_page.dart';
@@ -64,6 +66,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const CaptainPendingPage(),
       ),
       GoRoute(path: '/merchant', builder: (_, __) => const MerchantHomePage()),
+      GoRoute(
+        path: '/client/order-search/:orderId',
+        builder: (_, state) =>
+            ClientOrderSearchPage(orderId: state.pathParameters['orderId']!),
+      ),
 
       ShellRoute(
         builder: (context, state, child) => ClientShell(child: child),
@@ -103,6 +110,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/livreur/profile',
             builder: (_, __) => const LivreurProfilePage(),
+          ),
+          GoRoute(
+            path: '/livreur/wallet',
+            builder: (_, __) => const LivreurWalletPage(),
           ),
         ],
       ),

@@ -103,11 +103,11 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
             onDecline: () => Navigator.of(dialogContext).pop(),
             onAccept: () async {
               setDialogState(() => accepting = true);
-              final accepted = await ref
+              final errorCode = await ref
                   .read(livreurProvider.notifier)
                   .acceptOrder(order.id);
               if (!dialogContext.mounted) return;
-              if (accepted) {
+              if (errorCode == null) {
                 final messenger = ScaffoldMessenger.of(dialogContext);
                 Navigator.of(dialogContext).pop();
                 messenger.showSnackBar(
@@ -118,13 +118,17 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
                 );
               } else {
                 setDialogState(() => accepting = false);
+                final msg = errorCode == 'insufficient_balance'
+                    ? (isAr
+                        ? 'رصيدك غير كافٍ لقبول هذا الطلب'
+                        : 'Solde insuffisant pour accepter cette commande')
+                    : (isAr
+                        ? 'تم أخذ الطلب من كابتن آخر'
+                        : 'Commande déjà prise par un autre capitaine');
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   SnackBar(
-                    content: Text(
-                      isAr
-                          ? 'تم أخذ الطلب من كابتن آخر'
-                          : 'Commande déjà prise par un autre capitaine',
-                    ),
+                    content: Text(msg),
+                    backgroundColor: AppColors.error,
                   ),
                 );
               }
@@ -167,7 +171,11 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
           Navigator.of(context).pop();
           context.go('/livreur/profile');
         },
-        onComingSoon: comingSoon,
+        onWallet: () {
+        Navigator.of(context).pop();
+        context.go('/livreur/wallet');
+      },
+      onComingSoon: comingSoon,
       ),
       appBar: AppBar(
         leading: IconButton(
@@ -510,12 +518,14 @@ class _CaptainDrawer extends StatelessWidget {
   final bool isArabic;
   final String userName;
   final VoidCallback onProfile;
+  final VoidCallback onWallet;
   final VoidCallback onComingSoon;
 
   const _CaptainDrawer({
     required this.isArabic,
     required this.userName,
     required this.onProfile,
+    required this.onWallet,
     required this.onComingSoon,
   });
 
@@ -528,9 +538,9 @@ class _CaptainDrawer extends StatelessWidget {
         onProfile,
       ),
       _CaptainMenuItem(
-        isArabic ? 'صندوقي' : 'Ma caisse',
+        isArabic ? 'محفظتي' : 'Mon portefeuille',
         Icons.account_balance_wallet_outlined,
-        onComingSoon,
+        onWallet,
       ),
       _CaptainMenuItem(
         isArabic ? 'سجل الرسائل' : 'Messages',

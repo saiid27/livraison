@@ -24,6 +24,8 @@ class User(db.Model):
     reset_code = db.Column(db.String(6), nullable=True)
     reset_code_expires_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    balance = db.Column(db.Float, nullable=False, default=0.0)
+    vehicle_type = db.Column(db.String(10), nullable=False, default='moto')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations
@@ -44,5 +46,7 @@ class User(db.Model):
             'permit_image': self.permit_image,
             'approval_status': self.approval_status,
             'is_active': self.is_active,
+            'balance': self.balance,
+            'vehicle_type': self.vehicle_type,
             'created_at': self.created_at.isoformat(),
         }

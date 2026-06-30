@@ -46,7 +46,8 @@ class OrderNotifier extends StateNotifier<OrderState> {
     }
   }
 
-  Future<bool> createOrder({
+  /// Returns the new order's ID string on success, or null on failure.
+  Future<String?> createOrder({
     required String description,
     required String pickupAddress,
     required String deliveryAddress,
@@ -68,13 +69,13 @@ class OrderNotifier extends StateNotifier<OrderState> {
         orders: [newOrder, ...state.orders],
         isLoading: false,
       );
-      return true;
+      return newOrder.id;
     } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.response?.data['message'] ?? 'Erreur de création',
       );
-      return false;
+      return null;
     }
   }
 

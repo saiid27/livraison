@@ -5,6 +5,7 @@ from app.models.order import Order
 from app.models.user import User
 from app.utils.decorators import role_required
 from app.delivery_locations import DELIVERY_LOCATIONS, trial_delivery_price
+from app.broadcast import compute_broadcast_state
 
 client_bp = Blueprint('client', __name__)
 
@@ -64,7 +65,12 @@ def get_order(order_id):
     order = Order.query.filter_by(id=order_id, client_id=user_id).first()
     if not order:
         return jsonify({'message': 'Commande introuvable'}), 404
-    return jsonify({'order': order.to_dict()}), 200
+    data = order.to_dict()
+    if order.status == 'en_attente':
+        data['broadcast'] = compute_broadcast_state(order)
+    else:
+        data['broadcast'] = None
+    return jsonify({'order': data}), 200
 
 
 @client_bp.route('/orders/<int:order_id>/cancel', methods=['PUT'])
