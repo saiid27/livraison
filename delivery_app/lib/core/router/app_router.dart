@@ -14,6 +14,7 @@ import '../../features/client/presentation/pages/client_track_page.dart';
 import '../../features/client/presentation/pages/client_profile_page.dart';
 import '../../features/client/presentation/pages/client_order_search_page.dart';
 import '../../features/livreur/presentation/pages/livreur_home_page.dart';
+import '../../features/livreur/presentation/pages/livreur_history_page.dart';
 import '../../features/livreur/presentation/pages/livreur_profile_page.dart';
 import '../../features/livreur/presentation/pages/livreur_wallet_page.dart';
 import '../../features/admin/presentation/pages/admin_home_page.dart';
@@ -114,6 +115,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/livreur/wallet',
             builder: (_, __) => const LivreurWalletPage(),
+          ),
+          GoRoute(
+            path: '/livreur/history',
+            builder: (_, __) => const LivreurHistoryPage(),
           ),
         ],
       ),

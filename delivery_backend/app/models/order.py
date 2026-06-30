@@ -19,6 +19,7 @@ class Order(db.Model):
         default='en_attente'
     )
     notes = db.Column(db.Text, nullable=True)
+    cancellation_reason = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -34,6 +35,7 @@ class Order(db.Model):
             'price': self.price,
             'status': self.status,
             'notes': self.notes,
+            'cancellation_reason': self.cancellation_reason,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

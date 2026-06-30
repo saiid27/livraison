@@ -12,6 +12,7 @@ class OrderModel {
   final String? livreurPhone;
   final String? clientName;
   final String? clientPhone;
+  final String? cancellationReason;
   final DateTime createdAt;
 
   const OrderModel({
@@ -28,6 +29,7 @@ class OrderModel {
     this.livreurPhone,
     this.clientName,
     this.clientPhone,
+    this.cancellationReason,
     required this.createdAt,
   });
 
@@ -46,6 +48,7 @@ class OrderModel {
       livreurPhone: json['livreur_phone'],
       clientName: json['client_name'],
       clientPhone: json['client_phone'],
+      cancellationReason: json['cancellation_reason'],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),

@@ -175,6 +175,10 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
         Navigator.of(context).pop();
         context.go('/livreur/wallet');
       },
+      onHistory: () {
+        Navigator.of(context).pop();
+        context.go('/livreur/history');
+      },
       onComingSoon: comingSoon,
       ),
       appBar: AppBar(
@@ -519,6 +523,7 @@ class _CaptainDrawer extends StatelessWidget {
   final String userName;
   final VoidCallback onProfile;
   final VoidCallback onWallet;
+  final VoidCallback onHistory;
   final VoidCallback onComingSoon;
 
   const _CaptainDrawer({
@@ -526,6 +531,7 @@ class _CaptainDrawer extends StatelessWidget {
     required this.userName,
     required this.onProfile,
     required this.onWallet,
+    required this.onHistory,
     required this.onComingSoon,
   });
 
@@ -543,13 +549,13 @@ class _CaptainDrawer extends StatelessWidget {
         onWallet,
       ),
       _CaptainMenuItem(
-        isArabic ? 'سجل الرسائل' : 'Messages',
-        Icons.chat_bubble_outline_rounded,
-        onComingSoon,
+        isArabic ? 'سجل الطلبات' : 'Historique des demandes',
+        Icons.history_rounded,
+        onHistory,
       ),
       _CaptainMenuItem(
-        isArabic ? 'سجل المعاملات' : 'Transactions',
-        Icons.receipt_long_outlined,
+        isArabic ? 'سجل الرسائل' : 'Messages',
+        Icons.chat_bubble_outline_rounded,
         onComingSoon,
       ),
     ];

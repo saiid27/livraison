@@ -91,6 +91,19 @@ class LivreurNotifier extends StateNotifier<LivreurState> {
     }
   }
 
+  Future<bool> cancelOrder(String orderId, String reason) async {
+    try {
+      await ApiClient.instance.post(
+        '/livreur/orders/$orderId/cancel',
+        data: {'reason': reason},
+      );
+      await loadData();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> updateStatus(String orderId, String status) async {
     try {
       await ApiClient.instance.put(

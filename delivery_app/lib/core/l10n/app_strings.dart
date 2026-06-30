@@ -147,6 +147,20 @@ abstract class AppStrings {
   String get noUser;
   String get statusLabel;
 
+  // Captain History
+  String get captainHistory;
+  String get historyAll;
+  String get historyInProgress;
+  String get historyDelivered;
+  String get historyCancelled;
+  String get noHistoryOrders;
+  String get cancelDelivery;
+  String get cancelReasonTitle;
+  String get cancelReasonHint;
+  String get cancelReasonRequired;
+  String get confirmCancel;
+  String get cancellationReason;
+
   // Bottom Nav
   String get navHome;
   String get navOrders;
@@ -312,6 +326,19 @@ class FrStrings extends AppStrings {
   @override String get noUser => 'Aucun';
   @override String get statusLabel => 'Statut';
 
+  @override String get captainHistory => 'Historique des demandes';
+  @override String get historyAll => 'Toutes';
+  @override String get historyInProgress => 'En cours';
+  @override String get historyDelivered => 'Livrées';
+  @override String get historyCancelled => 'Annulées';
+  @override String get noHistoryOrders => 'Aucune demande dans cette catégorie';
+  @override String get cancelDelivery => 'Annuler la livraison';
+  @override String get cancelReasonTitle => 'Motif d\'annulation';
+  @override String get cancelReasonHint => 'Expliquez pourquoi vous annulez cette livraison...';
+  @override String get cancelReasonRequired => 'Le motif est obligatoire';
+  @override String get confirmCancel => 'Confirmer l\'annulation';
+  @override String get cancellationReason => 'Motif d\'annulation';
+
   @override String get navHome => 'Accueil';
   @override String get navOrders => 'Commandes';
   @override String get navNewOrder => 'Commander';
@@ -473,6 +500,19 @@ class ArStrings extends AppStrings {
   @override String get allLabel => 'الكل';
   @override String get noUser => 'لا يوجد';
   @override String get statusLabel => 'الحالة';
+
+  @override String get captainHistory => 'سجل الطلبات';
+  @override String get historyAll => 'الكل';
+  @override String get historyInProgress => 'جارٍ';
+  @override String get historyDelivered => 'مُوصَّلة';
+  @override String get historyCancelled => 'ملغية';
+  @override String get noHistoryOrders => 'لا توجد طلبات في هذه الفئة';
+  @override String get cancelDelivery => 'إلغاء التوصيل';
+  @override String get cancelReasonTitle => 'سبب الإلغاء';
+  @override String get cancelReasonHint => 'اكتب سبب إلغاء هذا التوصيل...';
+  @override String get cancelReasonRequired => 'السبب مطلوب';
+  @override String get confirmCancel => 'تأكيد الإلغاء';
+  @override String get cancellationReason => 'سبب الإلغاء';
 
   @override String get navHome => 'الرئيسية';
   @override String get navOrders => 'الطلبات';

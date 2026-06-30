@@ -93,6 +93,29 @@ def update_status(order_id):
     return jsonify({'order': order.to_dict(), 'message': 'Statut mis à jour'}), 200
 
 
+@livreur_bp.route('/orders/<int:order_id>/cancel', methods=['POST'])
+@jwt_required()
+@approved_captain_required
+def cancel_order(order_id):
+    user_id = get_jwt_identity()
+    order = Order.query.filter_by(id=order_id, livreur_id=user_id).first()
+
+    if not order:
+        return jsonify({'message': 'Commande introuvable'}), 404
+    if order.status != 'en_cours':
+        return jsonify({'message': 'Seules les commandes en cours peuvent être annulées'}), 400
+
+    data = request.get_json()
+    reason = (data.get('reason') or '').strip()
+    if not reason:
+        return jsonify({'message': 'Le motif d\'annulation est obligatoire'}), 400
+
+    order.status = 'annule'
+    order.cancellation_reason = reason
+    db.session.commit()
+    return jsonify({'order': order.to_dict(), 'message': 'Commande annulée'}), 200
+
+
 @livreur_bp.route('/wallet', methods=['GET'])
 @jwt_required()
 @approved_captain_required

@@ -105,6 +105,7 @@ def create_app():
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_type VARCHAR(20) NOT NULL DEFAULT 'delivery'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS balance FLOAT NOT NULL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(10) NOT NULL DEFAULT 'moto'",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
         ):
             db.session.execute(text(statement))
         db.session.commit()
