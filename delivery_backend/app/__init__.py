@@ -81,6 +81,10 @@ def create_app():
             return jsonify({'message': 'Tuile indisponible'}), 502
 
     with app.app_context():
+        # Import new models so db.create_all() discovers their tables
+        from app.models.payment_method import PaymentMethod  # noqa: F401
+        from app.models.recharge_request import RechargeRequest  # noqa: F401
+
         enum_exists = db.session.execute(
             text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')")
         ).scalar()

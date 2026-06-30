@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/providers/language_provider.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
 import '../../../../core/widgets/logout_button.dart';
 import '../providers/livreur_provider.dart';
+import '../providers/wallet_provider.dart';
+import '../../data/models/recharge_request_model.dart';
 
 class LivreurWalletPage extends ConsumerStatefulWidget {
   const LivreurWalletPage({super.key});
@@ -18,13 +21,24 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(livreurProvider.notifier).loadWallet());
+    Future.microtask(() {
+      ref.read(livreurProvider.notifier).loadWallet();
+      ref.read(walletProvider.notifier).loadAll();
+    });
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      ref.read(livreurProvider.notifier).loadWallet(),
+      ref.read(walletProvider.notifier).loadAll(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
-    final state = ref.watch(livreurProvider);
+    final livreurState = ref.watch(livreurProvider);
+    final walletState = ref.watch(walletProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -36,14 +50,14 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
         actions: const [LanguageButton(), LogoutButton()],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(livreurProvider.notifier).loadWallet(),
+        onRefresh: _refresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Mon solde card ──────────────────────────────────────
+              // ── Balance card ───────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
@@ -84,7 +98,7 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '${state.balance.toStringAsFixed(2)} ${isAr ? 'أوقية' : 'MRU'}',
+                      '${livreurState.balance.toStringAsFixed(2)} ${isAr ? 'أوقية' : 'MRU'}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -95,31 +109,17 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                     const SizedBox(height: 4),
                     Text(
                       isAr ? 'عمولة المنصة: 9%' : 'Commission plateforme : 9%',
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // ── Recharger button ────────────────────────────────────
+              // ── Recharge button ────────────────────────────────────
               ElevatedButton.icon(
-                onPressed: () {
-                  // Page de rechargement — à développer ultérieurement
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isAr
-                            ? 'صفحة شحن الرصيد ستُفعَّل قريبًا'
-                            : 'Page de rechargement disponible prochainement',
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => context.go('/livreur/recharge'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondary,
                   foregroundColor: Colors.white,
@@ -131,53 +131,190 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                 icon: const Icon(Icons.add_card_rounded),
                 label: Text(
                   isAr ? 'شحن الرصيد' : 'Recharger le solde',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
 
               const SizedBox(height: 28),
 
-              // ── Info card ───────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.warning.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      color: AppColors.warning,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        isAr
-                            ? 'يُخصَم 9% من قيمة كل توصيل كعمولة للمنصة عند قبولك للطلب. يجب أن يكون رصيدك كافياً قبل قبول أي طلب.'
-                            : 'Une commission de 9% est déduite de chaque livraison lors de l\'acceptation. Votre solde doit être suffisant avant d\'accepter une commande.',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
+              // ── Recharge history ───────────────────────────────────
+              Text(
+                isAr ? 'سجل الشحن' : 'Historique des recharges',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
                 ),
               ),
+              const SizedBox(height: 12),
+
+              if (walletState.isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (walletState.requests.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 56,
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          isAr
+                              ? 'لا توجد عمليات شحن بعد'
+                              : 'Aucune recharge pour le moment',
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...walletState.requests.map(
+                  (r) => _RechargeHistoryCard(request: r, isAr: isAr),
+                ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+// ── History card ──────────────────────────────────────────────────────────────
+
+class _RechargeHistoryCard extends StatelessWidget {
+  final RechargeRequestModel request;
+  final bool isAr;
+
+  const _RechargeHistoryCard({required this.request, required this.isAr});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    final timeFmt = DateFormat('HH:mm');
+    final (label, color, icon) = _statusInfo(request.status);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '+ ${request.amount.toStringAsFixed(0)} ${isAr ? 'أوقية' : 'MRU'}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    request.paymentMethodName ?? '',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (request.status == 'refuse' &&
+                      request.rejectionReason != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${isAr ? 'السبب: ' : 'Motif : '}${request.rejectionReason}',
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Date + status
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  fmt.format(request.createdAt),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+                Text(
+                  timeFmt.format(request.createdAt),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  (String, Color, IconData) _statusInfo(String status) => switch (status) {
+    'verifie' => (
+      isAr ? 'تم التحقق' : 'Vérifié',
+      AppColors.success,
+      Icons.check_circle_outline_rounded,
+    ),
+    'refuse' => (
+      isAr ? 'مرفوض' : 'Refusé',
+      AppColors.error,
+      Icons.cancel_outlined,
+    ),
+    _ => (
+      isAr ? 'في الانتظار' : 'En attente',
+      AppColors.warning,
+      Icons.hourglass_empty_rounded,
+    ),
+  };
 }

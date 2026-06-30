@@ -1,11 +1,20 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
+from werkzeug.utils import secure_filename
+import os
+
 from app import db
 from app.models.order import Order
 from app.models.user import User
+from app.models.payment_method import PaymentMethod
+from app.models.recharge_request import RechargeRequest
 from app.utils.decorators import approved_captain_required
 from app.broadcast import compute_broadcast_state, is_in_broadcast_window
+
+_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
 
 livreur_bp = Blueprint('livreur', __name__)
 
@@ -114,6 +123,74 @@ def cancel_order(order_id):
     order.cancellation_reason = reason
     db.session.commit()
     return jsonify({'order': order.to_dict(), 'message': 'Commande annulée'}), 200
+
+
+@livreur_bp.route('/payment-methods', methods=['GET'])
+@jwt_required()
+@approved_captain_required
+def list_payment_methods():
+    methods = PaymentMethod.query.filter_by(is_active=True).order_by(PaymentMethod.id).all()
+    return jsonify({'payment_methods': [m.to_dict() for m in methods]}), 200
+
+
+@livreur_bp.route('/recharge-requests', methods=['GET'])
+@jwt_required()
+@approved_captain_required
+def list_recharge_requests():
+    user_id = get_jwt_identity()
+    requests_ = RechargeRequest.query.filter_by(captain_id=user_id).order_by(
+        RechargeRequest.created_at.desc()
+    ).all()
+    return jsonify({'requests': [r.to_dict() for r in requests_]}), 200
+
+
+@livreur_bp.route('/recharge-requests', methods=['POST'])
+@jwt_required()
+@approved_captain_required
+def submit_recharge_request():
+    user_id = get_jwt_identity()
+
+    amount_raw = request.form.get('amount', '').strip()
+    phone_from = request.form.get('phone_from', '').strip()
+    payment_method_id = request.form.get('payment_method_id', '').strip()
+
+    if not amount_raw or not phone_from or not payment_method_id:
+        return jsonify({'message': 'Champs manquants'}), 400
+
+    try:
+        amount = float(amount_raw)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        return jsonify({'message': 'Montant invalide'}), 400
+
+    method = PaymentMethod.query.filter_by(id=int(payment_method_id), is_active=True).first()
+    if not method:
+        return jsonify({'message': 'Moyen de paiement invalide'}), 400
+
+    screenshot_url = None
+    if 'screenshot' in request.files and request.files['screenshot'].filename:
+        upload = request.files['screenshot']
+        original = secure_filename(upload.filename or '')
+        ext = Path(original).suffix.lower()
+        if ext not in _ALLOWED_EXTS:
+            return jsonify({'message': 'Format image non pris en charge'}), 400
+        target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'recharges')
+        os.makedirs(target_dir, exist_ok=True)
+        filename = f'{uuid4().hex}{ext}'
+        upload.save(os.path.join(target_dir, filename))
+        screenshot_url = f'/uploads/recharges/{filename}'
+
+    req = RechargeRequest(
+        captain_id=user_id,
+        payment_method_id=int(payment_method_id),
+        amount=amount,
+        phone_from=phone_from,
+        screenshot=screenshot_url,
+    )
+    db.session.add(req)
+    db.session.commit()
+    return jsonify({'request': req.to_dict(), 'message': 'Demande soumise'}), 201
 
 
 @livreur_bp.route('/wallet', methods=['GET'])

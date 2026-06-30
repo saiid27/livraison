@@ -29,13 +29,13 @@ class AdminHomePage extends ConsumerWidget {
         isAr ? 'طلبات شحن' : 'Demandes de recharge',
         Icons.add_card_outlined,
         Colors.purple,
-        () => _comingSoon(context, isAr),
+        () => context.go('/admin/recharge-requests'),
       ),
       _AdminItem(
-        isAr ? 'سجل الشحن' : 'Historique des recharges',
+        isAr ? 'طرق الدفع' : 'Moyens de paiement',
         Icons.credit_score_outlined,
         Colors.indigo,
-        () => _comingSoon(context, isAr),
+        () => context.go('/admin/payment-methods'),
       ),
       _AdminItem(
         isAr ? 'سجل الطلبات' : 'Historique des commandes',

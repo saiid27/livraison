@@ -21,6 +21,9 @@ import '../../features/admin/presentation/pages/admin_home_page.dart';
 import '../../features/admin/presentation/pages/admin_orders_page.dart';
 import '../../features/admin/presentation/pages/admin_users_page.dart';
 import '../../features/admin/presentation/pages/admin_approvals_page.dart';
+import '../../features/admin/presentation/pages/admin_recharge_requests_page.dart';
+import '../../features/admin/presentation/pages/admin_payment_methods_page.dart';
+import '../../features/livreur/presentation/pages/livreur_recharge_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../providers/language_provider.dart';
 
@@ -120,6 +123,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/livreur/history',
             builder: (_, __) => const LivreurHistoryPage(),
           ),
+          GoRoute(
+            path: '/livreur/recharge',
+            builder: (_, __) => const LivreurRechargePage(),
+          ),
         ],
       ),
 
@@ -138,6 +145,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/approvals',
             builder: (_, __) => const AdminApprovalsPage(),
+          ),
+          GoRoute(
+            path: '/admin/recharge-requests',
+            builder: (_, __) => const AdminRechargeRequestsPage(),
+          ),
+          GoRoute(
+            path: '/admin/payment-methods',
+            builder: (_, __) => const AdminPaymentMethodsPage(),
           ),
         ],
       ),
