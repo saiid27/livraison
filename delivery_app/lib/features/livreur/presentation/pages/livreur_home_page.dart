@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
@@ -24,6 +25,7 @@ class LivreurHomePage extends ConsumerStatefulWidget {
 class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _seenOrderIds = <String>{};
+  final _ringtone = FlutterRingtonePlayer();
   Timer? _ordersTimer;
   bool _isPolling = false;
   bool _dialogOpen = false;
@@ -41,6 +43,7 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   @override
   void dispose() {
     _ordersTimer?.cancel();
+    _ringtone.stop();
     super.dispose();
   }
 
@@ -82,31 +85,65 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
     await _showIncomingOrder(order);
   }
 
+  /// Seconds left in the current 60-second broadcast window for [order].
+  int _secondsLeftInWindow(dynamic order) {
+    const broadcastDuration = 60;
+    const cycle = 70; // 60s broadcast + 10s pause
+    final elapsed =
+        DateTime.now().difference(order.createdAt as DateTime).inSeconds;
+    final positionInCycle = elapsed % cycle;
+    if (positionInCycle >= broadcastDuration) return 0;
+    return broadcastDuration - positionInCycle;
+  }
+
   Future<void> _showIncomingOrder(dynamic order) async {
     if (!mounted) return;
+
+    final secondsLeft = _secondsLeftInWindow(order);
+    if (secondsLeft <= 0) return; // window already closed
+
     _dialogOpen = true;
-    await SystemSound.play(SystemSoundType.alert);
-    await HapticFeedback.lightImpact();
-    if (!mounted) return;
+
+    // Start looping ringtone for the whole dialog duration
+    unawaited(_ringtone.playRingtone(looping: true));
+    await HapticFeedback.heavyImpact();
+    if (!mounted) {
+      unawaited(_ringtone.stop());
+      _dialogOpen = false;
+      return;
+    }
+
     final isAr = ref.read(localeProvider).languageCode == 'ar';
+
+    // Auto-dismiss timer: closes the dialog when the broadcast window expires
+    Timer? autoClose;
 
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
+        // Initialise timer only once (builder may be called on rebuilds)
+        autoClose ??= Timer(Duration(seconds: secondsLeft), () {
+          if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+        });
+
         var accepting = false;
         return StatefulBuilder(
           builder: (context, setDialogState) => _IncomingOrderDialog(
             order: order,
             isAr: isAr,
             isAccepting: accepting,
-            onDecline: () => Navigator.of(dialogContext).pop(),
+            onDecline: () {
+              autoClose?.cancel();
+              Navigator.of(dialogContext).pop();
+            },
             onAccept: () async {
               setDialogState(() => accepting = true);
               final errorCode = await ref
                   .read(livreurProvider.notifier)
                   .acceptOrder(order.id);
               if (!dialogContext.mounted) return;
+              autoClose?.cancel();
               if (errorCode == null) {
                 final messenger = ScaffoldMessenger.of(dialogContext);
                 Navigator.of(dialogContext).pop();
@@ -137,6 +174,11 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
         );
       },
     );
+
+    // Dialog is closed — stop ringtone immediately regardless of how it closed
+    autoClose?.cancel();
+    unawaited(_ringtone.stop());
+
     _dialogOpen = false;
     if (mounted && ref.read(livreurProvider).isOnline) {
       unawaited(_pollForOrders());
