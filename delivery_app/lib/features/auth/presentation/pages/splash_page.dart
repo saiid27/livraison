@@ -16,6 +16,8 @@ class SplashPage extends ConsumerStatefulWidget {
 
 class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
+  static const _splashDuration = Duration(milliseconds: 650);
+
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -25,7 +27,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 650),
     );
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
@@ -44,7 +46,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   }
 
   Future<void> _navigate() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(_splashDuration);
     if (!mounted) return;
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated) {
@@ -52,6 +54,10 @@ class _SplashPageState extends ConsumerState<SplashPage>
         AppConstants.roleClient => '/client',
         AppConstants.roleLivreur =>
           auth.approvalStatus == 'approved' ? '/livreur' : '/captain-pending',
+        AppConstants.roleCarCaptain =>
+          auth.approvalStatus == 'approved'
+              ? '/car-captain'
+              : '/captain-pending',
         AppConstants.roleMerchant => '/merchant',
         AppConstants.roleAdmin => '/admin',
         _ => '/login',

@@ -7,6 +7,9 @@ from uuid import uuid4
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from secrets import randbelow
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+import json
 import os
 
 auth_bp = Blueprint('auth', __name__)
@@ -18,6 +21,77 @@ CAPTAIN_FILES = {
     'vehicle_registration_image': 'vehicle_registration_image',
     'permit_image': 'permit_image',
 }
+
+CHINGUISOFT_TIMEOUT_SECONDS = 12
+CHINGUISOFT_ALLOWED_STATUSES = {200, 401, 402, 422, 429, 503}
+
+OTP_STATUS_MESSAGES = {
+    200: 'تمت العملية بنجاح',
+    401: 'خدمة الرسائل غير مصرح بها. يرجى التواصل مع الدعم.',
+    402: 'رصيد خدمة الرسائل غير كافٍ. يرجى التواصل مع الدعم.',
+    422: 'رقم الهاتف أو رمز التحقق غير صالح.',
+    429: 'طلبات كثيرة جدًا. يرجى المحاولة لاحقًا.',
+    503: 'خدمة الرسائل غير متاحة حاليًا. يرجى المحاولة لاحقًا.',
+}
+
+
+def _otp_error(status_code):
+    return jsonify({
+        'message': OTP_STATUS_MESSAGES.get(
+            status_code,
+            'تعذر تنفيذ طلب التحقق. يرجى المحاولة لاحقًا.',
+        )
+    }), status_code
+
+
+def _clean_otp_payload(data, require_code=False):
+    phone = str(data.get('phone', '')).strip()
+    lang = str(data.get('lang', 'ar')).strip() or 'ar'
+    code = str(data.get('code', '')).strip()
+
+    if not phone:
+        return None, _otp_error(422)
+    if require_code and not code:
+        return None, _otp_error(422)
+
+    payload = {'phone': phone, 'lang': lang}
+    if require_code:
+        payload['code'] = code
+    return payload, None
+
+
+def _call_chinguisoft_otp(payload):
+    validation_key = current_app.config.get('CHINGUISOFT_VALIDATION_KEY')
+    validation_token = current_app.config.get('CHINGUISOFT_VALIDATION_TOKEN')
+    if not validation_key or not validation_token:
+        current_app.logger.error('Chinguisoft OTP environment is not configured')
+        return None, 503
+
+    url = f'https://chinguisoft.com/api/sms/validation/{validation_key}'
+    body = json.dumps(payload).encode('utf-8')
+    external_request = Request(
+        url,
+        data=body,
+        headers={
+            'Validation-token': validation_token,
+            'Content-Type': 'application/json',
+        },
+        method='POST',
+    )
+
+    try:
+        with urlopen(
+            external_request,
+            timeout=CHINGUISOFT_TIMEOUT_SECONDS,
+        ) as response:
+            response.read()
+            return response.status, None
+    except HTTPError as error:
+        error.read()
+        return error.code, None
+    except (TimeoutError, URLError, OSError):
+        current_app.logger.warning('Chinguisoft OTP request failed')
+        return None, 503
 
 
 def _save_upload(upload, category):
@@ -34,6 +108,50 @@ def _save_upload(upload, category):
     return f'/uploads/{relative_dir}/{filename}'
 
 
+@auth_bp.route('/request-otp', methods=['POST'])
+def request_otp():
+    data = request.get_json(silent=True) or {}
+    payload, error_response = _clean_otp_payload(data)
+    if error_response:
+        return error_response
+
+    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    if fallback_status:
+        return _otp_error(fallback_status)
+    if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
+        current_app.logger.warning(
+            'Unexpected Chinguisoft OTP request status: %s',
+            status_code,
+        )
+        return _otp_error(503)
+    if status_code != 200:
+        return _otp_error(status_code)
+
+    return jsonify({'message': 'تم إرسال رمز التحقق بنجاح'}), 200
+
+
+@auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.get_json(silent=True) or {}
+    payload, error_response = _clean_otp_payload(data, require_code=True)
+    if error_response:
+        return error_response
+
+    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    if fallback_status:
+        return _otp_error(fallback_status)
+    if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
+        current_app.logger.warning(
+            'Unexpected Chinguisoft OTP verify status: %s',
+            status_code,
+        )
+        return _otp_error(503)
+    if status_code != 200:
+        return _otp_error(status_code)
+
+    return jsonify({'message': 'تم التحقق من الرمز بنجاح'}), 200
+
+
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
@@ -42,7 +160,7 @@ def register():
     if not all(k in data for k in required):
         return jsonify({'message': 'Champs manquants'}), 400
 
-    if data['role'] not in ('client', 'livreur', 'merchant'):
+    if data['role'] not in ('client', 'livreur', 'car_captain', 'merchant'):
         return jsonify({'message': 'Rôle invalide'}), 400
 
     if User.query.filter_by(email=data['email']).first():
@@ -51,7 +169,7 @@ def register():
     password_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
 
     captain_images = {}
-    if data['role'] == 'livreur':
+    if data['role'] in ('livreur', 'car_captain'):
         missing_files = [key for key in CAPTAIN_FILES if key not in request.files]
         if missing_files:
             return jsonify({'message': 'Toutes les photos du capitaine sont obligatoires'}), 400
@@ -67,7 +185,8 @@ def register():
         phone=data['phone'],
         password_hash=password_hash,
         role=data['role'],
-        approval_status='pending' if data['role'] == 'livreur' else 'approved',
+        approval_status='pending' if data['role'] in ('livreur', 'car_captain') else 'approved',
+        vehicle_type='car' if data['role'] == 'car_captain' else 'moto',
         **captain_images,
     )
     db.session.add(user)

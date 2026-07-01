@@ -25,13 +25,16 @@ import '../../features/admin/presentation/pages/admin_recharge_requests_page.dar
 import '../../features/admin/presentation/pages/admin_payment_methods_page.dart';
 import '../../features/livreur/presentation/pages/livreur_recharge_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
+import '../constants/app_constants.dart';
 import '../providers/language_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: authState.isAuthenticated
+        ? _getHomeRoute(authState.role, authState.approvalStatus)
+        : '/login',
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute =
@@ -41,18 +44,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/splash';
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
-      if (isAuthenticated &&
-          isAuthRoute &&
-          state.matchedLocation != '/splash') {
+      if (isAuthenticated && isAuthRoute) {
         return _getHomeRoute(authState.role, authState.approvalStatus);
       }
-      if (isAuthenticated && authState.role == 'livreur') {
+      if (isAuthenticated &&
+          (authState.role == AppConstants.roleLivreur ||
+              authState.role == AppConstants.roleCarCaptain)) {
         final isApproved = authState.approvalStatus == 'approved';
         if (!isApproved && state.matchedLocation != '/captain-pending') {
           return '/captain-pending';
         }
         if (isApproved && state.matchedLocation == '/captain-pending') {
-          return '/livreur';
+          return _getHomeRoute(authState.role, authState.approvalStatus);
         }
       }
       return null;
@@ -131,6 +134,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       ShellRoute(
+        builder: (context, state, child) => LivreurShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/car-captain',
+            builder: (_, __) => const LivreurHomePage(
+              baseRoute: '/car-captain',
+              serviceType: 'course',
+              captainTitleAr: 'كابتن سيارة',
+              captainTitleFr: 'Capitaine voiture',
+              markerIcon: Icons.directions_car_rounded,
+            ),
+          ),
+          GoRoute(
+            path: '/car-captain/profile',
+            builder: (_, __) => const LivreurProfilePage(
+              baseRoute: '/car-captain',
+              roleLabelAr: 'كابتن سيارة',
+              roleLabelFr: 'Capitaine voiture',
+            ),
+          ),
+          GoRoute(
+            path: '/car-captain/wallet',
+            builder: (_, __) =>
+                const LivreurWalletPage(baseRoute: '/car-captain'),
+          ),
+          GoRoute(
+            path: '/car-captain/history',
+            builder: (_, __) =>
+                const LivreurHistoryPage(baseRoute: '/car-captain'),
+          ),
+          GoRoute(
+            path: '/car-captain/recharge',
+            builder: (_, __) =>
+                const LivreurRechargePage(baseRoute: '/car-captain'),
+          ),
+        ],
+      ),
+
+      ShellRoute(
         builder: (context, state, child) => AdminShell(child: child),
         routes: [
           GoRoute(path: '/admin', builder: (_, __) => const AdminHomePage()),
@@ -166,6 +208,8 @@ String _getHomeRoute(String? role, String? approvalStatus) {
       return '/client';
     case 'livreur':
       return approvalStatus == 'approved' ? '/livreur' : '/captain-pending';
+    case 'car_captain':
+      return approvalStatus == 'approved' ? '/car-captain' : '/captain-pending';
     case 'merchant':
       return '/merchant';
     case 'admin':

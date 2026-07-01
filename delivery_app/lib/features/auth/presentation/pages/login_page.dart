@@ -40,6 +40,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         AppConstants.roleClient => '/client',
         AppConstants.roleLivreur =>
           approvalStatus == 'approved' ? '/livreur' : '/captain-pending',
+        AppConstants.roleCarCaptain =>
+          approvalStatus == 'approved' ? '/car-captain' : '/captain-pending',
         AppConstants.roleMerchant => '/merchant',
         AppConstants.roleAdmin => '/admin',
         _ => '/login',
@@ -71,11 +73,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 12),
                     Center(
                       child: Container(
-                        width: 150,
-                        height: 150,
+                        width: 176,
+                        height: 176,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(32),
+                          borderRadius: BorderRadius.circular(36),
                           boxShadow: const [
                             BoxShadow(
                               color: AppColors.cardShadow,
@@ -84,12 +87,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ),
                           ],
                         ),
-                        child: Center(
-                          child: SvgPicture.asset(
-                            'assets/icons/login_logo.svg',
-                            width: 92,
-                            height: 92,
-                          ),
+                        child: SvgPicture.asset(
+                          'assets/icons/login_logo.svg',
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),

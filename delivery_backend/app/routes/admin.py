@@ -42,8 +42,8 @@ def dashboard():
         'delivered_orders': Order.query.filter_by(status='livre').count(),
         'cancelled_orders': Order.query.filter_by(status='annule').count(),
         'total_clients': User.query.filter_by(role='client').count(),
-        'total_livreurs': User.query.filter_by(role='livreur').count(),
-        'pending_captains': User.query.filter_by(role='livreur', approval_status='pending').count(),
+        'total_livreurs': User.query.filter(User.role.in_(('livreur', 'car_captain'))).count(),
+        'pending_captains': User.query.filter(User.role.in_(('livreur', 'car_captain')), User.approval_status == 'pending').count(),
         'total_merchants': User.query.filter_by(role='merchant').count(),
         'total_users': User.query.count(),
         'pending_recharges': RechargeRequest.query.filter_by(status='en_attente').count(),
@@ -117,8 +117,9 @@ def toggle_user(user_id):
 @jwt_required()
 @role_required('admin')
 def pending_captains():
-    captains = User.query.filter_by(
-        role='livreur', approval_status='pending'
+    captains = User.query.filter(
+        User.role.in_(('livreur', 'car_captain')),
+        User.approval_status == 'pending',
     ).order_by(User.created_at.asc()).all()
     return jsonify({'users': [user.to_dict() for user in captains]}), 200
 
@@ -127,7 +128,10 @@ def pending_captains():
 @jwt_required()
 @role_required('admin')
 def update_captain_approval(user_id):
-    captain = User.query.filter_by(id=user_id, role='livreur').first()
+    captain = User.query.filter(
+        User.id == user_id,
+        User.role.in_(('livreur', 'car_captain')),
+    ).first()
     if not captain:
         return jsonify({'message': 'Capitaine introuvable'}), 404
 

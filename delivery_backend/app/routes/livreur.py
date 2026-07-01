@@ -21,12 +21,19 @@ livreur_bp = Blueprint('livreur', __name__)
 COMMISSION_RATE = 0.09
 
 
+def _captain_service_type(role):
+    return 'course' if role == 'car_captain' else 'delivery'
+
+
 @livreur_bp.route('/available-orders', methods=['GET'])
 @jwt_required()
 @approved_captain_required
 def available_orders():
+    captain = User.query.get(get_jwt_identity())
     candidates = Order.query.filter_by(
-        status='en_attente', livreur_id=None
+        status='en_attente',
+        livreur_id=None,
+        service_type=_captain_service_type(captain.role),
     ).order_by(Order.created_at.desc()).all()
 
     orders = [o for o in candidates if is_in_broadcast_window(o)]
@@ -56,6 +63,8 @@ def accept_order(order_id):
         return jsonify({'message': 'Commande déjà prise'}), 400
     if order.livreur_id is not None:
         return jsonify({'message': 'Commande déjà assignée'}), 400
+    if order.service_type != _captain_service_type(captain.role):
+        return jsonify({'message': 'Type de commande non autorisé pour ce capitaine'}), 403
 
     if not is_in_broadcast_window(order):
         return jsonify({'message': 'La diffusion de cette commande est terminée'}), 400

@@ -28,6 +28,12 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # tokens sans expiration (dev)
     app.config['UPLOAD_FOLDER'] = os.path.abspath(upload_folder)
+    app.config['CHINGUISOFT_VALIDATION_KEY'] = os.getenv(
+        'CHINGUISOFT_VALIDATION_KEY'
+    )
+    app.config['CHINGUISOFT_VALIDATION_TOKEN'] = os.getenv(
+        'CHINGUISOFT_VALIDATION_TOKEN'
+    )
 
     db.init_app(app)
     jwt.init_app(app)
@@ -91,6 +97,9 @@ def create_app():
         if enum_exists:
             db.session.execute(
                 text("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'merchant'")
+            )
+            db.session.execute(
+                text("ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'car_captain'")
             )
             db.session.commit()
 

@@ -12,6 +12,7 @@ class AppConstants {
 
   static const String roleClient = 'client';
   static const String roleLivreur = 'livreur';
+  static const String roleCarCaptain = 'car_captain';
   static const String roleMerchant = 'merchant';
   static const String roleAdmin = 'admin';
 }

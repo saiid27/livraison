@@ -16,7 +16,20 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/livreur_provider.dart';
 
 class LivreurHomePage extends ConsumerStatefulWidget {
-  const LivreurHomePage({super.key});
+  final String baseRoute;
+  final String serviceType;
+  final String captainTitleAr;
+  final String captainTitleFr;
+  final IconData markerIcon;
+
+  const LivreurHomePage({
+    super.key,
+    this.baseRoute = '/livreur',
+    this.serviceType = 'delivery',
+    this.captainTitleAr = 'كابتن توصيل',
+    this.captainTitleFr = 'Capitaine de livraison',
+    this.markerIcon = Icons.delivery_dining_rounded,
+  });
 
   @override
   ConsumerState<LivreurHomePage> createState() => _LivreurHomePageState();
@@ -89,8 +102,9 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   int _secondsLeftInWindow(dynamic order) {
     const broadcastDuration = 60;
     const cycle = 70; // 60s broadcast + 10s pause
-    final elapsed =
-        DateTime.now().difference(order.createdAt as DateTime).inSeconds;
+    final elapsed = DateTime.now()
+        .difference(order.createdAt as DateTime)
+        .inSeconds;
     final positionInCycle = elapsed % cycle;
     if (positionInCycle >= broadcastDuration) return 0;
     return broadcastDuration - positionInCycle;
@@ -161,11 +175,11 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
                 setDialogState(() => accepting = false);
                 final msg = errorCode == 'insufficient_balance'
                     ? (isAr
-                        ? 'رصيدك غير كافٍ لقبول هذا الطلب'
-                        : 'Solde insuffisant pour accepter cette commande')
+                          ? 'رصيدك غير كافٍ لقبول هذا الطلب'
+                          : 'Solde insuffisant pour accepter cette commande')
                     : (isAr
-                        ? 'تم أخذ الطلب من كابتن آخر'
-                        : 'Commande déjà prise par un autre capitaine');
+                          ? 'تم أخذ الطلب من كابتن آخر'
+                          : 'Commande déjà prise par un autre capitaine');
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   SnackBar(
                     content: Text(msg),
@@ -212,20 +226,21 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
       key: _scaffoldKey,
       drawer: _CaptainDrawer(
         isArabic: isAr,
-        userName: user?.name ?? (isAr ? 'كابتن التوصيل' : 'Capitaine'),
+        roleLabel: isAr ? widget.captainTitleAr : widget.captainTitleFr,
+        userName: user?.name ?? (isAr ? widget.captainTitleAr : 'Capitaine'),
         onProfile: () {
           Navigator.of(context).pop();
-          context.go('/livreur/profile');
+          context.go('${widget.baseRoute}/profile');
         },
         onWallet: () {
-        Navigator.of(context).pop();
-        context.go('/livreur/wallet');
-      },
-      onHistory: () {
-        Navigator.of(context).pop();
-        context.go('/livreur/history');
-      },
-      onComingSoon: comingSoon,
+          Navigator.of(context).pop();
+          context.go('${widget.baseRoute}/wallet');
+        },
+        onHistory: () {
+          Navigator.of(context).pop();
+          context.go('${widget.baseRoute}/history');
+        },
+        onComingSoon: comingSoon,
       ),
       appBar: AppBar(
         leading: IconButton(
@@ -236,11 +251,11 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              user?.name ?? (isAr ? 'كابتن التوصيل' : 'Capitaine'),
+              user?.name ?? (isAr ? widget.captainTitleAr : 'Capitaine'),
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
             ),
             Text(
-              isAr ? 'كابتن توصيل' : 'Capitaine de livraison',
+              isAr ? widget.captainTitleAr : widget.captainTitleFr,
               style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
@@ -260,13 +275,13 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
                     '${AppConstants.baseUrl}/map/tiles/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.delivery.delivery_app',
               ),
-              const MarkerLayer(
+              MarkerLayer(
                 markers: [
                   Marker(
                     point: _nouakchott,
                     width: 54,
                     height: 54,
-                    child: _CaptainMapMarker(),
+                    child: _CaptainMapMarker(icon: widget.markerIcon),
                   ),
                 ],
               ),
@@ -546,7 +561,9 @@ class _RequestInfoRow extends StatelessWidget {
 }
 
 class _CaptainMapMarker extends StatelessWidget {
-  const _CaptainMapMarker();
+  final IconData icon;
+
+  const _CaptainMapMarker({required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -559,7 +576,7 @@ class _CaptainMapMarker extends StatelessWidget {
           BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3)),
         ],
       ),
-      child: const Icon(Icons.delivery_dining, color: Colors.white, size: 28),
+      child: Icon(icon, color: Colors.white, size: 28),
     );
   }
 }
@@ -567,6 +584,7 @@ class _CaptainMapMarker extends StatelessWidget {
 class _CaptainDrawer extends StatelessWidget {
   final bool isArabic;
   final String userName;
+  final String roleLabel;
   final VoidCallback onProfile;
   final VoidCallback onWallet;
   final VoidCallback onHistory;
@@ -575,6 +593,7 @@ class _CaptainDrawer extends StatelessWidget {
   const _CaptainDrawer({
     required this.isArabic,
     required this.userName,
+    required this.roleLabel,
     required this.onProfile,
     required this.onWallet,
     required this.onHistory,
@@ -641,7 +660,7 @@ class _CaptainDrawer extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    isArabic ? 'كابتن توصيل' : 'Capitaine de livraison',
+                    roleLabel,
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ],

@@ -14,7 +14,9 @@ import '../providers/wallet_provider.dart';
 import '../../data/models/payment_method_model.dart';
 
 class LivreurRechargePage extends ConsumerStatefulWidget {
-  const LivreurRechargePage({super.key});
+  final String baseRoute;
+
+  const LivreurRechargePage({super.key, this.baseRoute = '/livreur'});
 
   @override
   ConsumerState<LivreurRechargePage> createState() =>
@@ -32,7 +34,9 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(walletProvider.notifier).loadPaymentMethods());
+    Future.microtask(
+      () => ref.read(walletProvider.notifier).loadPaymentMethods(),
+    );
   }
 
   @override
@@ -66,7 +70,9 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
     }
 
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
-    final error = await ref.read(walletProvider.notifier).submitRequest(
+    final error = await ref
+        .read(walletProvider.notifier)
+        .submitRequest(
           amount: amount,
           phoneFrom: _phoneCtrl.text.trim(),
           paymentMethodId: _selectedMethod!.id,
@@ -80,21 +86,22 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
             ? 'تم إرسال طلب الشحن بنجاح'
             : 'Demande de recharge envoyée avec succès',
       );
-      context.go('/livreur/wallet');
+      context.go('${widget.baseRoute}/wallet');
     } else {
       _showSnack(error, isError: true);
     }
   }
 
   void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: isError ? AppColors.error : AppColors.success,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? AppColors.error : AppColors.success,
+      ),
+    );
   }
 
-  String get _imageBase =>
-      AppConstants.baseUrl.replaceAll('/api', '');
+  String get _imageBase => AppConstants.baseUrl.replaceAll('/api', '');
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +115,7 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
         title: Text(isAr ? 'شحن الرصيد' : 'Recharger le solde'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/livreur/wallet'),
+          onPressed: () => context.go('${widget.baseRoute}/wallet'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),
@@ -201,9 +208,7 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                     Clipboard.setData(
                       ClipboardData(text: _selectedMethod!.phoneNumber),
                     );
-                    _showSnack(
-                      isAr ? 'تم النسخ' : 'Numéro copié',
-                    );
+                    _showSnack(isAr ? 'تم النسخ' : 'Numéro copié');
                   },
                 ),
               ],
@@ -213,8 +218,9 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
               // ── Amount ────────────────────────────────────────────
               TextFormField(
                 controller: _amountCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                 ],
@@ -240,7 +246,9 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: isAr ? 'رقم الهاتف المرسِل' : 'N° de téléphone émetteur',
+                  labelText: isAr
+                      ? 'رقم الهاتف المرسِل'
+                      : 'N° de téléphone émetteur',
                   prefixIcon: const Icon(Icons.smartphone_rounded),
                 ),
                 validator: (v) {
@@ -298,8 +306,9 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                             Icon(
                               Icons.add_photo_alternate_outlined,
                               size: 40,
-                              color: AppColors.textSecondary
-                                  .withValues(alpha: 0.5),
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
@@ -322,9 +331,7 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                   onPressed: () => setState(() => _screenshotPath = null),
                   icon: const Icon(Icons.close, size: 16),
                   label: Text(isAr ? 'إزالة الصورة' : 'Supprimer la photo'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.error),
                 ),
               ],
 
@@ -401,7 +408,11 @@ class _MethodLogo extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(Icons.payment, size: size * 0.5, color: AppColors.primary),
+          child: Icon(
+            Icons.payment,
+            size: size * 0.5,
+            color: AppColors.primary,
+          ),
         ),
       ),
     );

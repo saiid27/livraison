@@ -11,7 +11,9 @@ import '../providers/wallet_provider.dart';
 import '../../data/models/recharge_request_model.dart';
 
 class LivreurWalletPage extends ConsumerStatefulWidget {
-  const LivreurWalletPage({super.key});
+  final String baseRoute;
+
+  const LivreurWalletPage({super.key, this.baseRoute = '/livreur'});
 
   @override
   ConsumerState<LivreurWalletPage> createState() => _LivreurWalletPageState();
@@ -45,7 +47,7 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
         title: Text(isAr ? 'المحفظة' : 'Portefeuille'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/livreur'),
+          onPressed: () => context.go(widget.baseRoute),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),
@@ -109,7 +111,10 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                     const SizedBox(height: 4),
                     Text(
                       isAr ? 'عمولة المنصة: 9%' : 'Commission plateforme : 9%',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -119,7 +124,7 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
 
               // ── Recharge button ────────────────────────────────────
               ElevatedButton.icon(
-                onPressed: () => context.go('/livreur/recharge'),
+                onPressed: () => context.go('${widget.baseRoute}/recharge'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondary,
                   foregroundColor: Colors.white,
@@ -131,7 +136,10 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                 icon: const Icon(Icons.add_card_rounded),
                 label: Text(
                   isAr ? 'شحن الرصيد' : 'Recharger le solde',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
 
@@ -171,7 +179,9 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                           isAr
                               ? 'لا توجد عمليات شحن بعد'
                               : 'Aucune recharge pour le moment',
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -276,8 +286,10 @@ class _RechargeHistoryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),

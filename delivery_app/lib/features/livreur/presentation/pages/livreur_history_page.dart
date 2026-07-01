@@ -10,7 +10,9 @@ import '../../../client/data/models/order_model.dart';
 import '../providers/livreur_provider.dart';
 
 class LivreurHistoryPage extends ConsumerStatefulWidget {
-  const LivreurHistoryPage({super.key});
+  final String baseRoute;
+
+  const LivreurHistoryPage({super.key, this.baseRoute = '/livreur'});
 
   @override
   ConsumerState<LivreurHistoryPage> createState() => _LivreurHistoryPageState();
@@ -49,7 +51,7 @@ class _LivreurHistoryPageState extends ConsumerState<LivreurHistoryPage>
         title: Text(isAr ? 'سجل الطلبات' : 'Historique des demandes'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/livreur'),
+          onPressed: () => context.go(widget.baseRoute),
         ),
         actions: const [LanguageButton(), LogoutButton()],
         bottom: TabBar(
@@ -88,11 +90,7 @@ class _OrderList extends ConsumerWidget {
   final bool isAr;
   final dynamic s;
 
-  const _OrderList({
-    required this.orders,
-    required this.isAr,
-    required this.s,
-  });
+  const _OrderList({required this.orders, required this.isAr, required this.s});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,11 +121,8 @@ class _OrderList extends ConsumerWidget {
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: orders.length,
-        itemBuilder: (_, i) => _HistoryOrderCard(
-          order: orders[i],
-          isAr: isAr,
-          s: s,
-        ),
+        itemBuilder: (_, i) =>
+            _HistoryOrderCard(order: orders[i], isAr: isAr, s: s),
       ),
     );
   }
@@ -306,7 +301,9 @@ class _HistoryOrderCard extends ConsumerWidget {
       barrierDismissible: false,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (_, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: AppColors.error),
@@ -359,7 +356,9 @@ class _HistoryOrderCard extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: submitting ? null : () => Navigator.of(dialogCtx).pop(),
+              onPressed: submitting
+                  ? null
+                  : () => Navigator.of(dialogCtx).pop(),
               child: Text(
                 isAr ? 'تراجع' : 'Annuler',
                 style: const TextStyle(color: AppColors.textSecondary),
@@ -381,10 +380,16 @@ class _HistoryOrderCard extends ConsumerWidget {
                         SnackBar(
                           content: Text(
                             ok
-                                ? (isAr ? 'تم إلغاء التوصيل' : 'Livraison annulée')
-                                : (isAr ? 'حدث خطأ' : 'Une erreur est survenue'),
+                                ? (isAr
+                                      ? 'تم إلغاء التوصيل'
+                                      : 'Livraison annulée')
+                                : (isAr
+                                      ? 'حدث خطأ'
+                                      : 'Une erreur est survenue'),
                           ),
-                          backgroundColor: ok ? AppColors.warning : AppColors.error,
+                          backgroundColor: ok
+                              ? AppColors.warning
+                              : AppColors.error,
                         ),
                       );
                     },
@@ -465,10 +470,7 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
           ),
         ),
       ],

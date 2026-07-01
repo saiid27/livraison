@@ -63,6 +63,70 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  String _authErrorMessage(DioException error, {required String fallback}) {
+    final serverMessage = error.response?.data is Map
+        ? error.response?.data['message']?.toString()
+        : null;
+    if (serverMessage != null && serverMessage.isNotEmpty) {
+      return serverMessage;
+    }
+
+    return switch (error.response?.statusCode) {
+      401 => 'خدمة الرسائل غير مصرح بها. يرجى التواصل مع الدعم.',
+      402 => 'رصيد خدمة الرسائل غير كافٍ. يرجى التواصل مع الدعم.',
+      422 => 'رقم الهاتف أو رمز التحقق غير صالح.',
+      429 => 'طلبات كثيرة جدًا. يرجى المحاولة لاحقًا.',
+      503 => 'خدمة الرسائل غير متاحة حاليًا. يرجى المحاولة لاحقًا.',
+      _ => fallback,
+    };
+  }
+
+  Future<bool> requestOtp(String phone, {String lang = 'ar'}) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await ApiClient.instance.post(
+        '/auth/request-otp',
+        data: {'phone': phone.trim(), 'lang': lang},
+      );
+      state = state.copyWith(isLoading: false, error: null);
+      return true;
+    } on DioException catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        error: _authErrorMessage(
+          error,
+          fallback: 'تعذر إرسال رمز التحقق. يرجى المحاولة لاحقًا.',
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> verifyOtp(
+    String phone,
+    String code, {
+    String lang = 'ar',
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await ApiClient.instance.post(
+        '/auth/verify-otp',
+        data: {'phone': phone.trim(), 'lang': lang, 'code': code.trim()},
+      );
+      state = state.copyWith(isLoading: false, error: null);
+      return true;
+    } on DioException catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        error: _authErrorMessage(
+          error,
+          fallback: 'تعذر التحقق من الرمز. يرجى المحاولة لاحقًا.',
+        ),
+      );
+      return false;
+    }
+  }
+
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {

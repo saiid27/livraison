@@ -8,19 +8,29 @@ import '../../../../core/providers/language_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class LivreurProfilePage extends ConsumerWidget {
-  const LivreurProfilePage({super.key});
+  final String baseRoute;
+  final String roleLabelAr;
+  final String roleLabelFr;
+
+  const LivreurProfilePage({
+    super.key,
+    this.baseRoute = '/livreur',
+    this.roleLabelAr = 'كابتن توصيل',
+    this.roleLabelFr = 'Capitaine de livraison',
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final s = ref.watch(stringsProvider);
+    final isAr = ref.watch(localeProvider).languageCode == 'ar';
 
     return Scaffold(
       appBar: AppBar(
         title: Text(s.myProfile),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/livreur'),
+          onPressed: () => context.go(baseRoute),
         ),
         actions: [const LanguageButton(), const LogoutButton()],
       ),
@@ -34,12 +44,22 @@ class LivreurProfilePage extends ConsumerWidget {
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 (user?.name ?? 'L')[0].toUpperCase(),
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primary),
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(user?.name ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text(user?.email ?? '', style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              user?.name ?? '',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              user?.email ?? '',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -47,7 +67,13 @@ class LivreurProfilePage extends ConsumerWidget {
                 color: AppColors.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(s.roleLivreur, style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+              child: Text(
+                isAr ? roleLabelAr : roleLabelFr,
+                style: const TextStyle(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             const SizedBox(height: 32),
             Card(
@@ -66,10 +92,26 @@ class LivreurProfilePage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _ProfileItem(icon: Icons.person_outlined, title: s.personalInfo, onTap: () {}),
-            _ProfileItem(icon: Icons.history, title: s.deliveryHistory, onTap: () {}),
-            _ProfileItem(icon: Icons.star_outlined, title: s.myRatings, onTap: () {}),
-            _ProfileItem(icon: Icons.help_outline, title: s.helpSupport, onTap: () {}),
+            _ProfileItem(
+              icon: Icons.person_outlined,
+              title: s.personalInfo,
+              onTap: () {},
+            ),
+            _ProfileItem(
+              icon: Icons.history,
+              title: s.deliveryHistory,
+              onTap: () {},
+            ),
+            _ProfileItem(
+              icon: Icons.star_outlined,
+              title: s.myRatings,
+              onTap: () {},
+            ),
+            _ProfileItem(
+              icon: Icons.help_outline,
+              title: s.helpSupport,
+              onTap: () {},
+            ),
             const SizedBox(height: 8),
             _ProfileItem(
               icon: Icons.logout,
@@ -82,14 +124,19 @@ class LivreurProfilePage extends ConsumerWidget {
                     title: Text(s.logoutTitle),
                     content: Text(s.logoutConfirm),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text(s.cancel),
+                      ),
                       ElevatedButton(
                         onPressed: () {
                           Navigator.pop(ctx);
                           ref.read(authProvider.notifier).logout();
                           context.go('/login');
                         },
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                        ),
                         child: Text(s.disconnect),
                       ),
                     ],
@@ -114,8 +161,18 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        ),
       ],
     );
   }
@@ -134,7 +191,12 @@ class _ProfileItem extends StatelessWidget {
   final VoidCallback onTap;
   final Color color;
 
-  const _ProfileItem({required this.icon, required this.title, required this.onTap, this.color = AppColors.textPrimary});
+  const _ProfileItem({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.color = AppColors.textPrimary,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -143,8 +205,14 @@ class _ProfileItem extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: Icon(icon, color: color),
-        title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
-        trailing: Icon(Icons.chevron_right, color: color.withValues(alpha: 0.5)),
+        title: Text(
+          title,
+          style: TextStyle(color: color, fontWeight: FontWeight.w500),
+        ),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: color.withValues(alpha: 0.5),
+        ),
       ),
     );
   }

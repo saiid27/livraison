@@ -49,7 +49,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     final isAr = ref.read(localeProvider).languageCode == 'ar';
-    if (_selectedRole == AppConstants.roleLivreur &&
+    if ((_selectedRole == AppConstants.roleLivreur ||
+            _selectedRole == AppConstants.roleCarCaptain) &&
         _captainDocuments.length != 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -79,6 +80,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       final route = switch (_selectedRole) {
         AppConstants.roleClient => '/client',
         AppConstants.roleLivreur => '/captain-pending',
+        AppConstants.roleCarCaptain => '/captain-pending',
         AppConstants.roleMerchant => '/merchant',
         _ => '/login',
       };
@@ -139,7 +141,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1.45,
                   children: [
                     _RoleCard(
                       title: isAr ? 'زبون' : 'Client',
@@ -149,16 +157,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         () => _selectedRole = AppConstants.roleClient,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     _RoleCard(
-                      title: isAr ? 'كابتن' : 'Capitaine',
+                      title: isAr ? 'كابتن توصيل' : 'Capitaine livraison',
                       icon: Icons.delivery_dining_outlined,
                       selected: _selectedRole == AppConstants.roleLivreur,
                       onTap: () => setState(
                         () => _selectedRole = AppConstants.roleLivreur,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    _RoleCard(
+                      title: isAr ? 'كابتن سيارة' : 'Capitaine voiture',
+                      icon: Icons.directions_car_outlined,
+                      selected: _selectedRole == AppConstants.roleCarCaptain,
+                      onTap: () => setState(
+                        () => _selectedRole = AppConstants.roleCarCaptain,
+                      ),
+                    ),
                     _RoleCard(
                       title: isAr ? 'تاجر' : 'Commerçant',
                       icon: Icons.storefront_outlined,
@@ -229,10 +243,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     return null;
                   },
                 ),
-                if (_selectedRole == AppConstants.roleLivreur) ...[
+                if (_selectedRole == AppConstants.roleLivreur ||
+                    _selectedRole == AppConstants.roleCarCaptain) ...[
                   const SizedBox(height: 24),
                   _CaptainDocuments(
                     isArabic: isAr,
+                    isCarCaptain: _selectedRole == AppConstants.roleCarCaptain,
                     selected: _captainDocuments,
                     onPick: _pickDocument,
                   ),
@@ -291,11 +307,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
 class _CaptainDocuments extends StatelessWidget {
   final bool isArabic;
+  final bool isCarCaptain;
   final Map<String, XFile> selected;
   final ValueChanged<String> onPick;
 
   const _CaptainDocuments({
     required this.isArabic,
+    required this.isCarCaptain,
     required this.selected,
     required this.onPick,
   });
@@ -315,12 +333,18 @@ class _CaptainDocuments extends StatelessWidget {
       ),
       (
         'vehicle_image',
-        isArabic ? 'صورة الدراجة' : 'Photo de la moto',
-        Icons.two_wheeler_outlined,
+        isCarCaptain
+            ? (isArabic ? 'صورة السيارة' : 'Photo de la voiture')
+            : (isArabic ? 'صورة الدراجة' : 'Photo de la moto'),
+        isCarCaptain
+            ? Icons.directions_car_outlined
+            : Icons.two_wheeler_outlined,
       ),
       (
         'vehicle_registration_image',
-        isArabic ? 'تسجيل الدراجة' : 'Carte grise',
+        isCarCaptain
+            ? (isArabic ? 'تسجيل السيارة' : 'Carte grise voiture')
+            : (isArabic ? 'تسجيل الدراجة' : 'Carte grise'),
         Icons.description_outlined,
       ),
       (
@@ -416,44 +440,41 @@ class _RoleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          height: 92,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primary : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? AppColors.primary : AppColors.border,
-              width: 1.5,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: selected ? Colors.white : AppColors.primary,
+              size: 27,
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: selected ? Colors.white : AppColors.primary,
-                size: 27,
+            const SizedBox(height: 7),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: selected ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
               ),
-              const SizedBox(height: 7),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: selected ? Colors.white : AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

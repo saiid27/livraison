@@ -11,7 +11,7 @@ class User(db.Model):
     phone = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(
-        db.Enum('client', 'livreur', 'merchant', 'admin', name='user_role'),
+        db.Enum('client', 'livreur', 'car_captain', 'merchant', 'admin', name='user_role'),
         nullable=False,
         default='client',
     )

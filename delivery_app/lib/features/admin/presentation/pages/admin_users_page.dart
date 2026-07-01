@@ -36,7 +36,9 @@ class _AdminUsersPageState extends ConsumerState<AdminUsersPage>
     final state = ref.watch(adminProvider);
     final s = ref.watch(stringsProvider);
     final clients = state.users.where((u) => u.role == 'client').toList();
-    final livreurs = state.users.where((u) => u.role == 'livreur').toList();
+    final livreurs = state.users
+        .where((u) => u.role == 'livreur' || u.role == 'car_captain')
+        .toList();
     final merchants = state.users.where((u) => u.role == 'merchant').toList();
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
 
