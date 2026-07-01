@@ -17,13 +17,13 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -32,7 +32,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
     final success = await ref
         .read(authProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passwordCtrl.text);
+        .login(_phoneCtrl.text.trim(), _passwordCtrl.text);
     if (success && mounted) {
       final role = ref.read(authProvider).role;
       final approvalStatus = ref.read(authProvider).approvalStatus;
@@ -120,18 +120,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       child: Column(
                         children: [
                           TextFormField(
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _phoneCtrl,
+                            keyboardType: TextInputType.phone,
                             decoration: InputDecoration(
-                              labelText: s.email,
-                              prefixIcon: const Icon(Icons.email_outlined),
+                              labelText: s.phone,
+                              prefixIcon: const Icon(Icons.phone_outlined),
                             ),
                             validator: (v) {
                               if (v == null || v.isEmpty) {
-                                return s.emailRequired;
-                              }
-                              if (!v.contains('@')) {
-                                return s.emailInvalid;
+                                return s.phoneRequired;
                               }
                               return null;
                             },

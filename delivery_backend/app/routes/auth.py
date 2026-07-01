@@ -5,8 +5,6 @@ from app.models.user import User
 from pathlib import Path
 from uuid import uuid4
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
-from secrets import randbelow
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import json
@@ -108,6 +106,11 @@ def _save_upload(upload, category):
     return f'/uploads/{relative_dir}/{filename}'
 
 
+def _generated_email(phone):
+    digits = ''.join(ch for ch in phone if ch.isdigit())
+    return f'{digits or uuid4().hex}@phone.mayahsar.local'
+
+
 @auth_bp.route('/request-otp', methods=['POST'])
 def request_otp():
     data = request.get_json(silent=True) or {}
@@ -156,15 +159,20 @@ def verify_otp():
 def register():
     data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
 
-    required = ['name', 'email', 'password', 'phone', 'role']
+    required = ['name', 'password', 'phone', 'role']
     if not all(k in data for k in required):
         return jsonify({'message': 'Champs manquants'}), 400
 
     if data['role'] not in ('client', 'livreur', 'car_captain', 'merchant'):
         return jsonify({'message': 'Rôle invalide'}), 400
 
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({'message': 'Email déjà utilisé'}), 409
+    phone = str(data['phone']).strip()
+    if User.query.filter_by(phone=phone).first():
+        return jsonify({'message': 'رقم الهاتف مستخدم بالفعل'}), 409
+
+    email = str(data.get('email') or '').strip().lower() or _generated_email(phone)
+    if User.query.filter(db.func.lower(User.email) == email).first():
+        return jsonify({'message': 'بيانات الحساب مستخدمة بالفعل'}), 409
 
     password_hash = bcrypt.generate_password_hash(data['password']).decode('utf-8')
 
@@ -181,8 +189,8 @@ def register():
 
     user = User(
         name=data['name'],
-        email=data['email'],
-        phone=data['phone'],
+        email=email,
+        phone=phone,
         password_hash=password_hash,
         role=data['role'],
         approval_status='pending' if data['role'] in ('livreur', 'car_captain') else 'approved',
@@ -200,13 +208,14 @@ def register():
 def login():
     data = request.get_json()
 
-    if not data or 'email' not in data or 'password' not in data:
-        return jsonify({'message': 'Email et mot de passe requis'}), 400
+    if not data or 'phone' not in data or 'password' not in data:
+        return jsonify({'message': 'رقم الهاتف وكلمة المرور مطلوبان'}), 400
 
-    user = User.query.filter_by(email=data['email']).first()
+    phone = str(data['phone']).strip()
+    user = User.query.filter_by(phone=phone).first()
 
     if not user or not bcrypt.check_password_hash(user.password_hash, data['password']):
-        return jsonify({'message': 'Email ou mot de passe incorrect'}), 401
+        return jsonify({'message': 'رقم الهاتف أو كلمة المرور غير صحيحة'}), 401
 
     if not user.is_active:
         return jsonify({'message': 'Compte désactivé'}), 403
@@ -228,51 +237,57 @@ def me():
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.get_json(silent=True) or {}
-    email = str(data.get('email', '')).strip().lower()
-    if not email:
-        return jsonify({'message': 'Email requis'}), 400
+    payload, error_response = _clean_otp_payload(data)
+    if error_response:
+        return error_response
 
-    user = User.query.filter(db.func.lower(User.email) == email).first()
-    response = {
-        'message': 'Si ce compte existe, un code de réinitialisation a été envoyé.'
-    }
-    if user:
-        code = f'{randbelow(1000000):06d}'
-        user.reset_code = code
-        user.reset_code_expires_at = datetime.utcnow() + timedelta(minutes=10)
-        db.session.commit()
+    if not User.query.filter_by(phone=payload['phone']).first():
+        return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
 
-        # Development fallback until an email/SMS provider is configured.
-        if os.getenv('FLASK_ENV') == 'development':
-            response['dev_code'] = code
+    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    if fallback_status:
+        return _otp_error(fallback_status)
+    if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
+        current_app.logger.warning(
+            'Unexpected Chinguisoft password reset status: %s',
+            status_code,
+        )
+        return _otp_error(503)
+    if status_code != 200:
+        return _otp_error(status_code)
 
-    return jsonify(response), 200
+    return jsonify({'message': 'تم إرسال رمز التحقق بنجاح'}), 200
 
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
     data = request.get_json(silent=True) or {}
-    email = str(data.get('email', '')).strip().lower()
+    phone = str(data.get('phone', '')).strip()
     code = str(data.get('code', '')).strip()
     password = str(data.get('password', ''))
 
-    if not email or not code or not password:
-        return jsonify({'message': 'Email, code et mot de passe requis'}), 400
+    if not phone or not code or not password:
+        return jsonify({'message': 'رقم الهاتف والرمز وكلمة المرور مطلوبة'}), 400
     if len(password) < 6:
-        return jsonify({'message': 'Le mot de passe doit contenir au moins 6 caractères'}), 400
+        return jsonify({'message': 'كلمة المرور يجب أن تحتوي على 6 أحرف على الأقل'}), 400
 
-    user = User.query.filter(db.func.lower(User.email) == email).first()
-    if (
-        not user
-        or not user.reset_code
-        or user.reset_code != code
-        or not user.reset_code_expires_at
-        or user.reset_code_expires_at < datetime.utcnow()
-    ):
-        return jsonify({'message': 'Code invalide ou expiré'}), 400
+    user = User.query.filter_by(phone=phone).first()
+    if not user:
+        return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
+
+    payload = {'phone': phone, 'lang': str(data.get('lang', 'ar') or 'ar'), 'code': code}
+    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    if fallback_status:
+        return _otp_error(fallback_status)
+    if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
+        current_app.logger.warning(
+            'Unexpected Chinguisoft reset verify status: %s',
+            status_code,
+        )
+        return _otp_error(503)
+    if status_code != 200:
+        return _otp_error(status_code)
 
     user.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-    user.reset_code = None
-    user.reset_code_expires_at = None
     db.session.commit()
-    return jsonify({'message': 'Mot de passe mis à jour'}), 200
+    return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200

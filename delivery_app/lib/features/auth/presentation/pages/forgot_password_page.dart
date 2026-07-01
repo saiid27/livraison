@@ -14,17 +14,16 @@ class ForgotPasswordPage extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _codeSent = false;
   bool _obscurePassword = true;
-  String? _developmentCode;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     _codeController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -33,21 +32,20 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   Future<void> _sendCode() async {
     final isAr = ref.read(localeProvider).languageCode == 'ar';
-    final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty) {
       _message(
-        isAr ? 'أدخل بريدًا إلكترونيًا صحيحًا' : 'Saisissez un email valide',
+        isAr ? 'أدخل رقم الهاتف' : 'Saisissez votre numéro de téléphone',
       );
       return;
     }
-    final code = await ref
+    final sent = await ref
         .read(authProvider.notifier)
-        .requestPasswordReset(email);
+        .requestPasswordReset(phone, lang: isAr ? 'ar' : 'fr');
     if (!mounted || ref.read(authProvider).error != null) return;
+    if (!sent) return;
     setState(() {
       _codeSent = true;
-      _developmentCode = code;
-      if (code != null) _codeController.text = code;
     });
     _message(isAr ? 'تم إرسال رمز التحقق' : 'Code de vérification envoyé');
   }
@@ -81,9 +79,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     final success = await ref
         .read(authProvider.notifier)
         .resetPassword(
-          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
           code: _codeController.text.trim(),
           password: _passwordController.text,
+          lang: isAr ? 'ar' : 'fr',
         );
     if (success && mounted) {
       _message(isAr ? 'تم تغيير كلمة المرور بنجاح' : 'Mot de passe modifié');
@@ -151,8 +150,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                           ? 'أدخل رمز التحقق وكلمة المرور الجديدة'
                           : 'Saisissez le code et le nouveau mot de passe')
                     : (isAr
-                          ? 'أدخل بريد حسابك وسنرسل لك رمز التحقق'
-                          : 'Saisissez votre email pour recevoir un code'),
+                          ? 'أدخل رقم الهاتف وسنرسل لك رمز التحقق'
+                          : 'Saisissez votre numéro pour recevoir un code'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -162,36 +161,16 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               ),
               const SizedBox(height: 32),
               TextFormField(
-                controller: _emailController,
+                controller: _phoneController,
                 readOnly: _codeSent,
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: isAr ? 'البريد الإلكتروني' : 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelText: isAr ? 'رقم الهاتف' : 'Téléphone',
+                  prefixIcon: const Icon(Icons.phone_outlined),
                 ),
               ),
               if (_codeSent) ...[
                 const SizedBox(height: 16),
-                if (_developmentCode != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: Text(
-                      isAr
-                          ? 'رمز التطوير: $_developmentCode'
-                          : 'Code de développement : $_developmentCode',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 TextFormField(
                   controller: _codeController,
                   keyboardType: TextInputType.number,

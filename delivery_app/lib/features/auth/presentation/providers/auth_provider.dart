@@ -127,12 +127,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String phone, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await ApiClient.instance.post(
         '/auth/login',
-        data: {'email': email, 'password': password},
+        data: {'phone': phone, 'password': password},
       );
       final token = response.data['token'];
       final user = UserModel.fromJson(response.data['user']);
@@ -152,7 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } on DioException catch (e) {
-      final msg = e.response?.data['message'] ?? 'Erreur de connexion';
+      final msg = e.response?.data['message'] ?? 'تعذر تسجيل الدخول';
       state = state.copyWith(isLoading: false, error: msg);
       return false;
     }
@@ -160,7 +160,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> register({
     required String name,
-    required String email,
     required String password,
     required String phone,
     required String role,
@@ -170,7 +169,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final formValues = <String, dynamic>{
         'name': name,
-        'email': email,
         'password': password,
         'phone': phone,
         'role': role,
@@ -200,7 +198,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } on DioException catch (e) {
-      final msg = e.response?.data['message'] ?? 'Erreur d\'inscription';
+      final msg = e.response?.data['message'] ?? 'تعذر إنشاء الحساب';
       state = state.copyWith(isLoading: false, error: msg);
       return false;
     }
@@ -226,41 +224,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<String?> requestPasswordReset(String email) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final response = await ApiClient.instance.post(
-        '/auth/forgot-password',
-        data: {'email': email},
-      );
-      state = state.copyWith(isLoading: false, error: null);
-      return response.data['dev_code']?.toString();
-    } on DioException catch (error) {
-      state = state.copyWith(
-        isLoading: false,
-        error: error.response?.data['message'] ?? 'Erreur de connexion',
-      );
-      return null;
-    }
-  }
-
-  Future<bool> resetPassword({
-    required String email,
-    required String code,
-    required String password,
-  }) async {
+  Future<bool> requestPasswordReset(String phone, {String lang = 'ar'}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await ApiClient.instance.post(
-        '/auth/reset-password',
-        data: {'email': email, 'code': code, 'password': password},
+        '/auth/forgot-password',
+        data: {'phone': phone.trim(), 'lang': lang},
       );
       state = state.copyWith(isLoading: false, error: null);
       return true;
     } on DioException catch (error) {
       state = state.copyWith(
         isLoading: false,
-        error: error.response?.data['message'] ?? 'Erreur de connexion',
+        error: _authErrorMessage(
+          error,
+          fallback: 'تعذر إرسال رمز التحقق. يرجى المحاولة لاحقًا.',
+        ),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String phone,
+    required String code,
+    required String password,
+    String lang = 'ar',
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await ApiClient.instance.post(
+        '/auth/reset-password',
+        data: {
+          'phone': phone.trim(),
+          'code': code.trim(),
+          'password': password,
+          'lang': lang,
+        },
+      );
+      state = state.copyWith(isLoading: false, error: null);
+      return true;
+    } on DioException catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        error: _authErrorMessage(
+          error,
+          fallback: 'تعذر تغيير كلمة المرور. يرجى المحاولة لاحقًا.',
+        ),
       );
       return false;
     }

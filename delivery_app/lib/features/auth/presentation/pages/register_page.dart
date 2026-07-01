@@ -18,7 +18,6 @@ class RegisterPage extends ConsumerStatefulWidget {
 class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _picker = ImagePicker();
@@ -29,7 +28,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
@@ -68,7 +66,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         .read(authProvider.notifier)
         .register(
           name: _nameCtrl.text.trim(),
-          email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           phone: _phoneCtrl.text.trim(),
           role: _selectedRole,
@@ -192,20 +189,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   ),
                   validator: (value) =>
                       value == null || value.isEmpty ? s.nameRequired : null,
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: s.email,
-                    prefixIcon: const Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return s.emailRequired;
-                    if (!value.contains('@')) return s.emailInvalid;
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
