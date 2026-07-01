@@ -18,7 +18,7 @@ class DeliveryApp extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
 
     return MaterialApp.router(
-      title: 'DeliveryApp',
+      title: 'mayahsar',
       theme: AppTheme.lightTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

@@ -30,21 +30,21 @@ class LanguageButton extends ConsumerWidget {
                   : const Locale('ar');
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.language_rounded, size: 19, color: color),
-                  const SizedBox(width: 7),
                   Text(
                     nextLanguage,
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontSize: 17,
                       height: 1,
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  Icon(Icons.language_rounded, size: 24, color: color),
                 ],
               ),
             ),

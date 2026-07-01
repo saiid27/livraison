@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/providers/language_provider.dart';
 import '../../../../core/widgets/language_button.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -70,8 +70,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   Widget build(BuildContext context) {
-    final s = ref.watch(stringsProvider);
-
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Stack(
@@ -79,7 +77,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
           Center(
             child: AnimatedBuilder(
               animation: _controller,
-              builder: (_, __) => FadeTransition(
+              builder: (context, child) => FadeTransition(
                 opacity: _fadeAnimation,
                 child: ScaleTransition(
                   scale: _scaleAnimation,
@@ -87,47 +85,49 @@ class _SplashPageState extends ConsumerState<SplashPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 100,
-                        height: 100,
+                        width: 112,
+                        height: 112,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                          borderRadius: BorderRadius.circular(28),
                         ),
-                        child: const Icon(
-                          Icons.delivery_dining,
-                          size: 60,
-                          color: AppColors.primary,
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'assets/icons/delivery_scooter_mark.svg',
+                            width: 68,
+                            height: 68,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Text(
-                        s.appName,
-                        style: const TextStyle(
+                      const SizedBox(height: 34),
+                      const Text(
+                        'mayahsar',
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          fontSize: 38,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        s.tagline,
-                        style: const TextStyle(
+                      const SizedBox(height: 20),
+                      const Text(
+                        'توصيل سريع وموثوق',
+                        textDirection: TextDirection.rtl,
+                        style: TextStyle(
                           color: Colors.white70,
-                          fontSize: 16,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w400,
+                          height: 1,
                         ),
                       ),
-                      const SizedBox(height: 48),
-                      const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
+                      const SizedBox(height: 72),
+                      const SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 4,
+                        ),
                       ),
                     ],
                   ),
@@ -135,7 +135,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
               ),
             ),
           ),
-          const Positioned(top: 50, right: 16, child: LanguageButton()),
+          const Positioned(top: 54, right: 14, child: LanguageButton()),
         ],
       ),
     );

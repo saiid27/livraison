@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -69,13 +70,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   children: [
                     const SizedBox(height: 12),
                     Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: Image.asset(
-                          'assets/images/app_logo.png',
-                          width: 150,
-                          height: 150,
-                          fit: BoxFit.cover,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(32),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: AppColors.cardShadow,
+                              blurRadius: 18,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'assets/icons/login_logo.svg',
+                            width: 92,
+                            height: 92,
+                          ),
                         ),
                       ),
                     ),

@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'DeliveryApp';
+  static const String appName = 'mayahsar';
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://livraison-o0ns.onrender.com/api',
