@@ -62,12 +62,21 @@ def _clean_otp_payload(data, require_code=False):
     return payload, None
 
 
-def _call_chinguisoft_otp(payload):
+def _call_chinguisoft_otp(payload, purpose):
     validation_key = current_app.config.get('CHINGUISOFT_VALIDATION_KEY')
     validation_token = current_app.config.get('CHINGUISOFT_VALIDATION_TOKEN')
     if not validation_key or not validation_token:
         current_app.logger.error('Chinguisoft OTP environment is not configured')
         return None, 503
+
+    phone = str(payload.get('phone', ''))
+    safe_phone = f'***{phone[-4:]}' if len(phone) >= 4 else '***'
+    current_app.logger.info(
+        'Chinguisoft OTP call purpose=%s phone=%s has_code=%s',
+        purpose,
+        safe_phone,
+        'code' in payload,
+    )
 
     url = f'https://chinguisoft.com/api/sms/validation/{validation_key}'
     body = json.dumps(payload).encode('utf-8')
@@ -122,7 +131,7 @@ def request_otp():
     if error_response:
         return error_response
 
-    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    status_code, fallback_status = _call_chinguisoft_otp(payload, 'request-otp')
     if fallback_status:
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
@@ -144,7 +153,7 @@ def verify_otp():
     if error_response:
         return error_response
 
-    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    status_code, fallback_status = _call_chinguisoft_otp(payload, 'verify-otp')
     if fallback_status:
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
@@ -284,7 +293,10 @@ def forgot_password():
             'remaining_seconds': remaining_seconds,
         }), 429
 
-    status_code, fallback_status = _call_chinguisoft_otp(payload)
+    status_code, fallback_status = _call_chinguisoft_otp(
+        payload,
+        'forgot-password',
+    )
     if fallback_status:
         User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
         db.session.commit()

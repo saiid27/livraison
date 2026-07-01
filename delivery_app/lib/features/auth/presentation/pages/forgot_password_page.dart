@@ -26,6 +26,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   bool _otpVerified = false;
   bool _obscurePassword = true;
   bool _isSendingOtp = false;
+  bool _isVerifyingOtp = false;
   String? _accountName;
   Timer? _resendTimer;
   int _remainingSeconds = 0;
@@ -128,6 +129,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   }
 
   Future<void> _verifyCode() async {
+    if (_isVerifyingOtp || _otpVerified) return;
     final isAr = ref.read(localeProvider).languageCode == 'ar';
     if (_codeController.text.trim().length != 6) {
       _message(
@@ -137,16 +139,21 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       );
       return;
     }
-    final success = await ref
-        .read(authProvider.notifier)
-        .verifyOtp(
-          _phoneController.text.trim(),
-          _codeController.text.trim(),
-          lang: isAr ? 'ar' : 'fr',
-        );
-    if (success && mounted) {
-      setState(() => _otpVerified = true);
-      _message(isAr ? 'تم التحقق من الرمز' : 'Code vérifié');
+    setState(() => _isVerifyingOtp = true);
+    try {
+      final success = await ref
+          .read(authProvider.notifier)
+          .verifyOtp(
+            _phoneController.text.trim(),
+            _codeController.text.trim(),
+            lang: isAr ? 'ar' : 'fr',
+          );
+      if (success && mounted) {
+        setState(() => _otpVerified = true);
+        _message(isAr ? 'تم التحقق من الرمز' : 'Code vérifié');
+      }
+    } finally {
+      if (mounted) setState(() => _isVerifyingOtp = false);
     }
   }
 
