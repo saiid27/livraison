@@ -5,6 +5,7 @@ from app.models.user import User
 from pathlib import Path
 from uuid import uuid4
 from werkzeug.utils import secure_filename
+from datetime import datetime, timedelta
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import json
@@ -22,6 +23,7 @@ CAPTAIN_FILES = {
 
 CHINGUISOFT_TIMEOUT_SECONDS = 12
 CHINGUISOFT_ALLOWED_STATUSES = {200, 401, 402, 422, 429, 503}
+OTP_RESEND_COOLDOWN = timedelta(minutes=8)
 
 OTP_STATUS_MESSAGES = {
     200: 'تمت العملية بنجاح',
@@ -241,8 +243,19 @@ def forgot_password():
     if error_response:
         return error_response
 
-    if not User.query.filter_by(phone=payload['phone']).first():
+    user = User.query.filter_by(phone=payload['phone']).first()
+    if not user:
         return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
+
+    now = datetime.utcnow()
+    if user.otp_requested_at:
+        next_allowed_at = user.otp_requested_at + OTP_RESEND_COOLDOWN
+        if now < next_allowed_at:
+            remaining_seconds = int((next_allowed_at - now).total_seconds())
+            return jsonify({
+                'message': 'تم إرسال رمز بالفعل. يمكنك طلب رمز جديد بعد 8 دقائق من آخر طلب.',
+                'remaining_seconds': remaining_seconds,
+            }), 429
 
     status_code, fallback_status = _call_chinguisoft_otp(payload)
     if fallback_status:
@@ -256,7 +269,13 @@ def forgot_password():
     if status_code != 200:
         return _otp_error(status_code)
 
-    return jsonify({'message': 'تم إرسال رمز التحقق بنجاح'}), 200
+    user.otp_requested_at = now
+    db.session.commit()
+
+    return jsonify({
+        'message': 'تم إرسال رمز التحقق بنجاح',
+        'user': {'name': user.name, 'phone': user.phone},
+    }), 200
 
 
 @auth_bp.route('/reset-password', methods=['POST'])

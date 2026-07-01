@@ -29,14 +29,19 @@ import '../constants/app_constants.dart';
 import '../providers/language_provider.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final isAuthenticated = ref.watch(
+    authProvider.select((state) => state.isAuthenticated),
+  );
+  final role = ref.watch(authProvider.select((state) => state.role));
+  final approvalStatus = ref.watch(
+    authProvider.select((state) => state.approvalStatus),
+  );
 
   return GoRouter(
-    initialLocation: authState.isAuthenticated
-        ? _getHomeRoute(authState.role, authState.approvalStatus)
+    initialLocation: isAuthenticated
+        ? _getHomeRoute(role, approvalStatus)
         : '/login',
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
       final isAuthRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
@@ -45,17 +50,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) {
-        return _getHomeRoute(authState.role, authState.approvalStatus);
+        return _getHomeRoute(role, approvalStatus);
       }
       if (isAuthenticated &&
-          (authState.role == AppConstants.roleLivreur ||
-              authState.role == AppConstants.roleCarCaptain)) {
-        final isApproved = authState.approvalStatus == 'approved';
+          (role == AppConstants.roleLivreur ||
+              role == AppConstants.roleCarCaptain)) {
+        final isApproved = approvalStatus == 'approved';
         if (!isApproved && state.matchedLocation != '/captain-pending') {
           return '/captain-pending';
         }
         if (isApproved && state.matchedLocation == '/captain-pending') {
-          return _getHomeRoute(authState.role, authState.approvalStatus);
+          return _getHomeRoute(role, approvalStatus);
         }
       }
       return null;

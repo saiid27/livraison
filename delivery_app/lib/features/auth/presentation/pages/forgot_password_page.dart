@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,15 +16,21 @@ class ForgotPasswordPage extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
+  static const _otpResendCooldown = Duration(minutes: 8);
+
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _codeSent = false;
   bool _obscurePassword = true;
+  String? _accountName;
+  Timer? _resendTimer;
+  int _remainingSeconds = 0;
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _phoneController.dispose();
     _codeController.dispose();
     _passwordController.dispose();
@@ -39,15 +47,40 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       );
       return;
     }
-    final sent = await ref
+    final accountName = await ref
         .read(authProvider.notifier)
         .requestPasswordReset(phone, lang: isAr ? 'ar' : 'fr');
     if (!mounted || ref.read(authProvider).error != null) return;
-    if (!sent) return;
+    if (accountName == null) return;
     setState(() {
       _codeSent = true;
+      _accountName = accountName;
     });
+    _startResendCooldown();
     _message(isAr ? 'تم إرسال رمز التحقق' : 'Code de vérification envoyé');
+  }
+
+  void _startResendCooldown() {
+    _resendTimer?.cancel();
+    setState(() => _remainingSeconds = _otpResendCooldown.inSeconds);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_remainingSeconds <= 1) {
+        timer.cancel();
+        setState(() => _remainingSeconds = 0);
+        return;
+      }
+      setState(() => _remainingSeconds--);
+    });
+  }
+
+  String _formatRemaining() {
+    final minutes = (_remainingSeconds ~/ 60).toString();
+    final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   Future<void> _resetPassword() async {
@@ -171,6 +204,39 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               ),
               if (_codeSent) ...[
                 const SizedBox(height: 16),
+                if (_accountName != null && _accountName!.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline_rounded,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isAr
+                                ? 'الحساب: $_accountName'
+                                : 'Compte : $_accountName',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextFormField(
                   controller: _codeController,
                   keyboardType: TextInputType.number,
@@ -245,8 +311,16 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               ),
               if (_codeSent)
                 TextButton(
-                  onPressed: auth.isLoading ? null : _sendCode,
-                  child: Text(isAr ? 'إعادة إرسال الرمز' : 'Renvoyer le code'),
+                  onPressed: auth.isLoading || _remainingSeconds > 0
+                      ? null
+                      : _sendCode,
+                  child: Text(
+                    _remainingSeconds > 0
+                        ? (isAr
+                              ? 'يمكنك طلب رمز جديد بعد ${_formatRemaining()}'
+                              : 'Nouveau code dans ${_formatRemaining()}')
+                        : (isAr ? 'إعادة إرسال الرمز' : 'Renvoyer le code'),
+                  ),
                 ),
             ],
           ),

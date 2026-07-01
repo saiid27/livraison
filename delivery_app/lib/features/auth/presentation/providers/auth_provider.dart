@@ -64,6 +64,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   String _authErrorMessage(DioException error, {required String fallback}) {
+    if (error.response?.statusCode == 429 && error.response?.data is Map) {
+      final remaining = error.response?.data['remaining_seconds'];
+      if (remaining is num && remaining > 0) {
+        final minutes = (remaining ~/ 60).toString();
+        final seconds = (remaining.toInt() % 60).toString().padLeft(2, '0');
+        return 'تم إرسال رمز بالفعل. يمكنك طلب رمز جديد بعد $minutes:$seconds';
+      }
+    }
+
     final serverMessage = error.response?.data is Map
         ? error.response?.data['message']?.toString()
         : null;
@@ -224,15 +233,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> requestPasswordReset(String phone, {String lang = 'ar'}) async {
+  Future<String?> requestPasswordReset(
+    String phone, {
+    String lang = 'ar',
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await ApiClient.instance.post(
+      final response = await ApiClient.instance.post(
         '/auth/forgot-password',
         data: {'phone': phone.trim(), 'lang': lang},
       );
       state = state.copyWith(isLoading: false, error: null);
-      return true;
+      final user = response.data is Map ? response.data['user'] : null;
+      return user is Map ? user['name']?.toString() : '';
     } on DioException catch (error) {
       state = state.copyWith(
         isLoading: false,
@@ -241,7 +254,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           fallback: 'تعذر إرسال رمز التحقق. يرجى المحاولة لاحقًا.',
         ),
       );
-      return false;
+      return null;
     }
   }
 

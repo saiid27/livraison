@@ -114,6 +114,7 @@ def create_app():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'approved'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code VARCHAR(6)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code_expires_at TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_requested_at TIMESTAMP",
             "ALTER TABLE orders ALTER COLUMN price DROP NOT NULL",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_type VARCHAR(20) NOT NULL DEFAULT 'delivery'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS balance FLOAT NOT NULL DEFAULT 0",
