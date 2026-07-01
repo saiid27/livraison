@@ -24,6 +24,7 @@ class User(db.Model):
     reset_code = db.Column(db.String(6), nullable=True)
     reset_code_expires_at = db.Column(db.DateTime, nullable=True)
     otp_requested_at = db.Column(db.DateTime, nullable=True)
+    otp_verified_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     balance = db.Column(db.Float, nullable=False, default=0.0)
     vehicle_type = db.Column(db.String(10), nullable=False, default='moto')

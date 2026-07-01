@@ -23,6 +23,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _codeSent = false;
+  bool _otpVerified = false;
   bool _obscurePassword = true;
   String? _accountName;
   Timer? _resendTimer;
@@ -85,12 +86,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   Future<void> _resetPassword() async {
     final isAr = ref.read(localeProvider).languageCode == 'ar';
-    if (_codeController.text.trim().length != 6) {
-      _message(
-        isAr
-            ? 'أدخل رمز التحقق المكون من 6 أرقام'
-            : 'Saisissez le code à 6 chiffres',
-      );
+    if (!_otpVerified) {
+      await _verifyCode();
       return;
     }
     if (_passwordController.text.length < 6) {
@@ -120,6 +117,29 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
     if (success && mounted) {
       _message(isAr ? 'تم تغيير كلمة المرور بنجاح' : 'Mot de passe modifié');
       context.go('/login');
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final isAr = ref.read(localeProvider).languageCode == 'ar';
+    if (_codeController.text.trim().length != 6) {
+      _message(
+        isAr
+            ? 'أدخل رمز التحقق المكون من 6 أرقام'
+            : 'Saisissez le code à 6 chiffres',
+      );
+      return;
+    }
+    final success = await ref
+        .read(authProvider.notifier)
+        .verifyOtp(
+          _phoneController.text.trim(),
+          _codeController.text.trim(),
+          lang: isAr ? 'ar' : 'fr',
+        );
+    if (success && mounted) {
+      setState(() => _otpVerified = true);
+      _message(isAr ? 'تم التحقق من الرمز' : 'Code vérifié');
     }
   }
 
@@ -179,9 +199,13 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               const SizedBox(height: 10),
               Text(
                 _codeSent
-                    ? (isAr
-                          ? 'أدخل رمز التحقق وكلمة المرور الجديدة'
-                          : 'Saisissez le code et le nouveau mot de passe')
+                    ? (_otpVerified
+                          ? (isAr
+                                ? 'اكتب كلمة المرور الجديدة'
+                                : 'Saisissez le nouveau mot de passe')
+                          : (isAr
+                                ? 'أدخل رمز التحقق وكلمة المرور الجديدة'
+                                : 'Saisissez le code de vérification'))
                     : (isAr
                           ? 'أدخل رقم الهاتف وسنرسل لك رمز التحقق'
                           : 'Saisissez votre numéro pour recevoir un code'),
@@ -239,6 +263,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 ],
                 TextFormField(
                   controller: _codeController,
+                  readOnly: _otpVerified,
                   keyboardType: TextInputType.number,
                   maxLength: 6,
                   decoration: InputDecoration(
@@ -247,37 +272,40 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     counterText: '',
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: isAr
-                        ? 'كلمة المرور الجديدة'
-                        : 'Nouveau mot de passe',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                if (_otpVerified) ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: isAr
+                          ? 'كلمة المرور الجديدة'
+                          : 'Nouveau mot de passe',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _confirmController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: isAr
-                        ? 'تأكيد كلمة المرور'
-                        : 'Confirmer le mot de passe',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _confirmController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: isAr
+                          ? 'تأكيد كلمة المرور'
+                          : 'Confirmer le mot de passe',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                    ),
                   ),
-                ),
+                ],
               ],
               if (auth.error != null) ...[
                 const SizedBox(height: 14),
@@ -303,9 +331,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       )
                     : Text(
                         _codeSent
-                            ? (isAr
-                                  ? 'تغيير كلمة المرور'
-                                  : 'Modifier le mot de passe')
+                            ? (_otpVerified
+                                  ? (isAr
+                                        ? 'تغيير كلمة المرور'
+                                        : 'Modifier le mot de passe')
+                                  : (isAr ? 'تحقق من الرمز' : 'Vérifier'))
                             : (isAr ? 'إرسال الرمز' : 'Envoyer le code'),
                       ),
               ),

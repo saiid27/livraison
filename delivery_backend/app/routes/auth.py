@@ -24,6 +24,7 @@ CAPTAIN_FILES = {
 CHINGUISOFT_TIMEOUT_SECONDS = 12
 CHINGUISOFT_ALLOWED_STATUSES = {200, 401, 402, 422, 429, 503}
 OTP_RESEND_COOLDOWN = timedelta(minutes=8)
+OTP_VERIFY_WINDOW = timedelta(minutes=10)
 
 OTP_STATUS_MESSAGES = {
     200: 'تمت العملية بنجاح',
@@ -154,6 +155,11 @@ def verify_otp():
     if status_code != 200:
         return _otp_error(status_code)
 
+    user = User.query.filter_by(phone=payload['phone']).first()
+    if user:
+        user.otp_verified_at = datetime.utcnow()
+        db.session.commit()
+
     return jsonify({'message': 'تم التحقق من الرمز بنجاح'}), 200
 
 
@@ -270,6 +276,7 @@ def forgot_password():
         return _otp_error(status_code)
 
     user.otp_requested_at = now
+    user.otp_verified_at = None
     db.session.commit()
 
     return jsonify({
@@ -282,11 +289,10 @@ def forgot_password():
 def reset_password():
     data = request.get_json(silent=True) or {}
     phone = str(data.get('phone', '')).strip()
-    code = str(data.get('code', '')).strip()
     password = str(data.get('password', ''))
 
-    if not phone or not code or not password:
-        return jsonify({'message': 'رقم الهاتف والرمز وكلمة المرور مطلوبة'}), 400
+    if not phone or not password:
+        return jsonify({'message': 'رقم الهاتف وكلمة المرور مطلوبة'}), 400
     if len(password) < 6:
         return jsonify({'message': 'كلمة المرور يجب أن تحتوي على 6 أحرف على الأقل'}), 400
 
@@ -294,19 +300,14 @@ def reset_password():
     if not user:
         return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
 
-    payload = {'phone': phone, 'lang': str(data.get('lang', 'ar') or 'ar'), 'code': code}
-    status_code, fallback_status = _call_chinguisoft_otp(payload)
-    if fallback_status:
-        return _otp_error(fallback_status)
-    if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
-        current_app.logger.warning(
-            'Unexpected Chinguisoft reset verify status: %s',
-            status_code,
-        )
-        return _otp_error(503)
-    if status_code != 200:
-        return _otp_error(status_code)
+    if (
+        not user.otp_verified_at
+        or user.otp_verified_at + OTP_VERIFY_WINDOW < datetime.utcnow()
+    ):
+        return jsonify({'message': 'يرجى التحقق من رمز OTP أولًا'}), 422
 
     user.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    user.otp_requested_at = None
+    user.otp_verified_at = None
     db.session.commit()
     return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200
