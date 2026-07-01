@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
@@ -25,7 +25,7 @@ class LivreurHomePage extends ConsumerStatefulWidget {
 class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _seenOrderIds = <String>{};
-  final _ringtone = FlutterRingtonePlayer();
+  final _player = AudioPlayer();
   Timer? _ordersTimer;
   bool _isPolling = false;
   bool _dialogOpen = false;
@@ -43,7 +43,7 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   @override
   void dispose() {
     _ordersTimer?.cancel();
-    _ringtone.stop();
+    _player.dispose();
     super.dispose();
   }
 
@@ -104,11 +104,15 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
 
     _dialogOpen = true;
 
-    // Start looping ringtone for the whole dialog duration
-    unawaited(_ringtone.playRingtone(looping: true));
+    // Start looping modern notification sound for the whole dialog duration
+    unawaited(() async {
+      await _player.setReleaseMode(ReleaseMode.loop);
+      await _player.setVolume(1.0);
+      await _player.play(AssetSource('sounds/notification.wav'));
+    }());
     await HapticFeedback.heavyImpact();
     if (!mounted) {
-      unawaited(_ringtone.stop());
+      unawaited(_player.stop());
       _dialogOpen = false;
       return;
     }
@@ -175,9 +179,9 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
       },
     );
 
-    // Dialog is closed — stop ringtone immediately regardless of how it closed
+    // Dialog is closed — stop sound immediately regardless of how it closed
     autoClose?.cancel();
-    unawaited(_ringtone.stop());
+    unawaited(_player.stop());
 
     _dialogOpen = false;
     if (mounted && ref.read(livreurProvider).isOnline) {
