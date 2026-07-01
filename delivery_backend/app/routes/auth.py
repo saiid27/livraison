@@ -249,11 +249,12 @@ def forgot_password():
     if error_response:
         return error_response
 
-    user = User.query.filter_by(phone=payload['phone']).first()
+    user = User.query.filter_by(phone=payload['phone']).with_for_update().first()
     if not user:
         return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
 
     now = datetime.utcnow()
+    previous_requested_at = user.otp_requested_at
     if user.otp_requested_at:
         next_allowed_at = user.otp_requested_at + OTP_RESEND_COOLDOWN
         if now < next_allowed_at:
@@ -263,21 +264,29 @@ def forgot_password():
                 'remaining_seconds': remaining_seconds,
             }), 429
 
+    # Reserve the OTP window before contacting the SMS provider. This blocks
+    # fast double taps or parallel requests from sending two SMS messages.
+    user.otp_requested_at = now
+    user.otp_verified_at = None
+    db.session.commit()
+
     status_code, fallback_status = _call_chinguisoft_otp(payload)
     if fallback_status:
+        user.otp_requested_at = previous_requested_at
+        db.session.commit()
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
         current_app.logger.warning(
             'Unexpected Chinguisoft password reset status: %s',
             status_code,
         )
+        user.otp_requested_at = previous_requested_at
+        db.session.commit()
         return _otp_error(503)
     if status_code != 200:
+        user.otp_requested_at = previous_requested_at
+        db.session.commit()
         return _otp_error(status_code)
-
-    user.otp_requested_at = now
-    user.otp_verified_at = None
-    db.session.commit()
 
     return jsonify({
         'message': 'تم إرسال رمز التحقق بنجاح',

@@ -25,6 +25,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   bool _codeSent = false;
   bool _otpVerified = false;
   bool _obscurePassword = true;
+  bool _isSendingOtp = false;
   String? _accountName;
   Timer? _resendTimer;
   int _remainingSeconds = 0;
@@ -40,6 +41,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   }
 
   Future<void> _sendCode() async {
+    if (_isSendingOtp || _remainingSeconds > 0) return;
     final isAr = ref.read(localeProvider).languageCode == 'ar';
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
@@ -48,17 +50,22 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       );
       return;
     }
-    final accountName = await ref
-        .read(authProvider.notifier)
-        .requestPasswordReset(phone, lang: isAr ? 'ar' : 'fr');
-    if (!mounted || ref.read(authProvider).error != null) return;
-    if (accountName == null) return;
-    setState(() {
-      _codeSent = true;
-      _accountName = accountName;
-    });
-    _startResendCooldown();
-    _message(isAr ? 'تم إرسال رمز التحقق' : 'Code de vérification envoyé');
+    setState(() => _isSendingOtp = true);
+    try {
+      final accountName = await ref
+          .read(authProvider.notifier)
+          .requestPasswordReset(phone, lang: isAr ? 'ar' : 'fr');
+      if (!mounted || ref.read(authProvider).error != null) return;
+      if (accountName == null) return;
+      setState(() {
+        _codeSent = true;
+        _accountName = accountName;
+      });
+      _startResendCooldown();
+      _message(isAr ? 'تم إرسال رمز التحقق' : 'Code de vérification envoyé');
+    } finally {
+      if (mounted) setState(() => _isSendingOtp = false);
+    }
   }
 
   void _startResendCooldown() {
@@ -341,7 +348,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               ),
               if (_codeSent)
                 TextButton(
-                  onPressed: auth.isLoading || _remainingSeconds > 0
+                  onPressed:
+                      auth.isLoading || _isSendingOtp || _remainingSeconds > 0
                       ? null
                       : _sendCode,
                   child: Text(
