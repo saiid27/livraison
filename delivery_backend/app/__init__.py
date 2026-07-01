@@ -105,6 +105,17 @@ def create_app():
 
         db.create_all()
 
+        db.session.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS otp_rate_limits (
+                    phone VARCHAR(32) PRIMARY KEY,
+                    requested_at TIMESTAMP NOT NULL
+                )
+                """
+            )
+        )
+
         # Lightweight development migration for existing databases.
         for statement in (
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_card_image VARCHAR(255)",

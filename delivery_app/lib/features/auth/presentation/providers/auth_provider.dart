@@ -43,6 +43,8 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   static const _storage = FlutterSecureStorage();
+  bool _otpRequestInFlight = false;
+  bool _passwordResetOtpInFlight = false;
 
   AuthNotifier() : super(const AuthState()) {
     _checkAuth();
@@ -91,6 +93,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> requestOtp(String phone, {String lang = 'ar'}) async {
+    if (_otpRequestInFlight) return false;
+    _otpRequestInFlight = true;
     state = state.copyWith(isLoading: true, error: null);
     try {
       await ApiClient.instance.post(
@@ -108,6 +112,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         ),
       );
       return false;
+    } finally {
+      _otpRequestInFlight = false;
     }
   }
 
@@ -237,6 +243,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String phone, {
     String lang = 'ar',
   }) async {
+    if (_passwordResetOtpInFlight) return null;
+    _passwordResetOtpInFlight = true;
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await ApiClient.instance.post(
@@ -255,6 +263,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         ),
       );
       return null;
+    } finally {
+      _passwordResetOtpInFlight = false;
     }
   }
 

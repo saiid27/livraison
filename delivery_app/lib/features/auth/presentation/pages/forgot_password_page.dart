@@ -16,7 +16,7 @@ class ForgotPasswordPage extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
-  static const _otpResendCooldown = Duration(minutes: 8);
+  static const _otpResendCooldown = Duration(seconds: 60);
 
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
@@ -165,6 +165,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
+    final isPrimaryButtonDisabled =
+        auth.isLoading ||
+        _isSendingOtp ||
+        (!_codeSent && _remainingSeconds > 0);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -331,7 +335,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               ],
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: auth.isLoading
+                onPressed: isPrimaryButtonDisabled
                     ? null
                     : (_codeSent ? _resetPassword : _sendCode),
                 child: auth.isLoading

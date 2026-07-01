@@ -24,7 +24,7 @@ CAPTAIN_FILES = {
 
 CHINGUISOFT_TIMEOUT_SECONDS = 12
 CHINGUISOFT_ALLOWED_STATUSES = {200, 401, 402, 422, 429, 503}
-OTP_RESEND_COOLDOWN = timedelta(minutes=8)
+OTP_RESEND_COOLDOWN = timedelta(seconds=60)
 OTP_VERIFY_WINDOW = timedelta(minutes=10)
 
 OTP_STATUS_MESSAGES = {
@@ -46,6 +46,10 @@ def _otp_error(status_code):
     }), status_code
 
 
+def _request_id():
+    return uuid4().hex
+
+
 def _clean_otp_payload(data, require_code=False):
     phone = str(data.get('phone', '')).strip()
     lang = str(data.get('lang', 'ar')).strip() or 'ar'
@@ -62,7 +66,58 @@ def _clean_otp_payload(data, require_code=False):
     return payload, None
 
 
-def _call_chinguisoft_otp(payload, purpose):
+def _reserve_otp_send(phone, request_id):
+    now = datetime.utcnow()
+    cutoff = now - OTP_RESEND_COOLDOWN
+    result = db.session.execute(
+        text(
+            """
+            INSERT INTO otp_rate_limits (phone, requested_at)
+            VALUES (:phone, :now)
+            ON CONFLICT (phone) DO UPDATE
+            SET requested_at = EXCLUDED.requested_at
+            WHERE otp_rate_limits.requested_at <= :cutoff
+            RETURNING requested_at
+            """
+        ),
+        {'phone': phone, 'now': now, 'cutoff': cutoff},
+    ).first()
+    db.session.commit()
+
+    current_app.logger.info(
+        'OTP send reservation request_id=%s phone=%s timestamp=%s allowed=%s',
+        request_id,
+        phone,
+        now.isoformat(),
+        result is not None,
+    )
+
+    if result is not None:
+        return True, 0
+
+    existing = db.session.execute(
+        text("SELECT requested_at FROM otp_rate_limits WHERE phone = :phone"),
+        {'phone': phone},
+    ).first()
+    remaining_seconds = int(OTP_RESEND_COOLDOWN.total_seconds())
+    if existing and existing[0]:
+        next_allowed_at = existing[0] + OTP_RESEND_COOLDOWN
+        remaining_seconds = max(
+            1,
+            int((next_allowed_at - now).total_seconds()),
+        )
+    return False, remaining_seconds
+
+
+def _otp_already_sent(remaining_seconds, request_id):
+    return jsonify({
+        'message': 'OTP already sent. Please wait before requesting again.',
+        'remaining_seconds': remaining_seconds,
+        'request_id': request_id,
+    }), 429
+
+
+def _call_chinguisoft_otp(payload, purpose, request_id):
     validation_key = current_app.config.get('CHINGUISOFT_VALIDATION_KEY')
     validation_token = current_app.config.get('CHINGUISOFT_VALIDATION_TOKEN')
     if not validation_key or not validation_token:
@@ -70,11 +125,12 @@ def _call_chinguisoft_otp(payload, purpose):
         return None, 503
 
     phone = str(payload.get('phone', ''))
-    safe_phone = f'***{phone[-4:]}' if len(phone) >= 4 else '***'
     current_app.logger.info(
-        'Chinguisoft OTP call purpose=%s phone=%s has_code=%s',
+        'Chinguisoft OTP call request_id=%s purpose=%s phone=%s timestamp=%s has_code=%s',
+        request_id,
         purpose,
-        safe_phone,
+        phone,
+        datetime.utcnow().isoformat(),
         'code' in payload,
     )
 
@@ -101,7 +157,11 @@ def _call_chinguisoft_otp(payload, purpose):
         error.read()
         return error.code, None
     except (TimeoutError, URLError, OSError):
-        current_app.logger.warning('Chinguisoft OTP request failed')
+        current_app.logger.warning(
+            'Chinguisoft OTP request failed request_id=%s phone=%s',
+            request_id,
+            phone,
+        )
         return None, 503
 
 
@@ -131,19 +191,32 @@ def request_otp():
     if error_response:
         return error_response
 
-    status_code, fallback_status = _call_chinguisoft_otp(payload, 'request-otp')
+    request_id = _request_id()
+    allowed, remaining_seconds = _reserve_otp_send(payload['phone'], request_id)
+    if not allowed:
+        return _otp_already_sent(remaining_seconds, request_id)
+
+    status_code, fallback_status = _call_chinguisoft_otp(
+        payload,
+        'request-otp',
+        request_id,
+    )
     if fallback_status:
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
         current_app.logger.warning(
-            'Unexpected Chinguisoft OTP request status: %s',
+            'Unexpected Chinguisoft OTP request status: %s request_id=%s',
             status_code,
+            request_id,
         )
         return _otp_error(503)
     if status_code != 200:
         return _otp_error(status_code)
 
-    return jsonify({'message': 'تم إرسال رمز التحقق بنجاح'}), 200
+    return jsonify({
+        'message': 'تم إرسال رمز التحقق بنجاح',
+        'request_id': request_id,
+    }), 200
 
 
 @auth_bp.route('/verify-otp', methods=['POST'])
@@ -153,13 +226,19 @@ def verify_otp():
     if error_response:
         return error_response
 
-    status_code, fallback_status = _call_chinguisoft_otp(payload, 'verify-otp')
+    request_id = _request_id()
+    status_code, fallback_status = _call_chinguisoft_otp(
+        payload,
+        'verify-otp',
+        request_id,
+    )
     if fallback_status:
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
         current_app.logger.warning(
-            'Unexpected Chinguisoft OTP verify status: %s',
+            'Unexpected Chinguisoft OTP verify status: %s request_id=%s',
             status_code,
+            request_id,
         )
         return _otp_error(503)
     if status_code != 200:
@@ -260,63 +339,40 @@ def forgot_password():
         return error_response
 
     now = datetime.utcnow()
-    cutoff = now - OTP_RESEND_COOLDOWN
-    result = db.session.execute(
-        text(
-            """
-            UPDATE users
-            SET otp_requested_at = :now, otp_verified_at = NULL
-            WHERE phone = :phone
-              AND (otp_requested_at IS NULL OR otp_requested_at <= :cutoff)
-            RETURNING id, name, phone
-            """
-        ),
-        {'now': now, 'phone': payload['phone'], 'cutoff': cutoff},
-    ).mappings().first()
-    db.session.commit()
+    user = User.query.filter_by(phone=payload['phone']).first()
+    if not user:
+        return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
 
-    if result is None:
-        existing = User.query.filter_by(phone=payload['phone']).first()
-        if not existing:
-            return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
-
-        if existing.otp_requested_at:
-            next_allowed_at = existing.otp_requested_at + OTP_RESEND_COOLDOWN
-            remaining_seconds = max(
-                1,
-                int((next_allowed_at - now).total_seconds()),
-            )
-        else:
-            remaining_seconds = OTP_RESEND_COOLDOWN.seconds
-        return jsonify({
-            'message': 'تم إرسال رمز بالفعل. يمكنك طلب رمز جديد بعد 8 دقائق من آخر طلب.',
-            'remaining_seconds': remaining_seconds,
-        }), 429
+    request_id = _request_id()
+    allowed, remaining_seconds = _reserve_otp_send(payload['phone'], request_id)
+    if not allowed:
+        return _otp_already_sent(remaining_seconds, request_id)
 
     status_code, fallback_status = _call_chinguisoft_otp(
         payload,
         'forgot-password',
+        request_id,
     )
     if fallback_status:
-        User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
-        db.session.commit()
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
         current_app.logger.warning(
-            'Unexpected Chinguisoft password reset status: %s',
+            'Unexpected Chinguisoft password reset status: %s request_id=%s',
             status_code,
+            request_id,
         )
-        User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
-        db.session.commit()
         return _otp_error(503)
     if status_code != 200:
-        User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
-        db.session.commit()
         return _otp_error(status_code)
+
+    user.otp_requested_at = now
+    user.otp_verified_at = None
+    db.session.commit()
 
     return jsonify({
         'message': 'تم إرسال رمز التحقق بنجاح',
-        'user': {'name': result['name'], 'phone': result['phone']},
+        'request_id': request_id,
+        'user': {'name': user.name, 'phone': user.phone},
     }), 200
 
 
