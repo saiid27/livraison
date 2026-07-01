@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db, bcrypt
 from app.models.user import User
+from sqlalchemy import text
 from pathlib import Path
 from uuid import uuid4
 from werkzeug.utils import secure_filename
@@ -249,30 +250,43 @@ def forgot_password():
     if error_response:
         return error_response
 
-    user = User.query.filter_by(phone=payload['phone']).with_for_update().first()
-    if not user:
-        return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
-
     now = datetime.utcnow()
-    previous_requested_at = user.otp_requested_at
-    if user.otp_requested_at:
-        next_allowed_at = user.otp_requested_at + OTP_RESEND_COOLDOWN
-        if now < next_allowed_at:
-            remaining_seconds = int((next_allowed_at - now).total_seconds())
-            return jsonify({
-                'message': 'تم إرسال رمز بالفعل. يمكنك طلب رمز جديد بعد 8 دقائق من آخر طلب.',
-                'remaining_seconds': remaining_seconds,
-            }), 429
-
-    # Reserve the OTP window before contacting the SMS provider. This blocks
-    # fast double taps or parallel requests from sending two SMS messages.
-    user.otp_requested_at = now
-    user.otp_verified_at = None
+    cutoff = now - OTP_RESEND_COOLDOWN
+    result = db.session.execute(
+        text(
+            """
+            UPDATE users
+            SET otp_requested_at = :now, otp_verified_at = NULL
+            WHERE phone = :phone
+              AND (otp_requested_at IS NULL OR otp_requested_at <= :cutoff)
+            RETURNING id, name, phone
+            """
+        ),
+        {'now': now, 'phone': payload['phone'], 'cutoff': cutoff},
+    ).mappings().first()
     db.session.commit()
+
+    if result is None:
+        existing = User.query.filter_by(phone=payload['phone']).first()
+        if not existing:
+            return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
+
+        if existing.otp_requested_at:
+            next_allowed_at = existing.otp_requested_at + OTP_RESEND_COOLDOWN
+            remaining_seconds = max(
+                1,
+                int((next_allowed_at - now).total_seconds()),
+            )
+        else:
+            remaining_seconds = OTP_RESEND_COOLDOWN.seconds
+        return jsonify({
+            'message': 'تم إرسال رمز بالفعل. يمكنك طلب رمز جديد بعد 8 دقائق من آخر طلب.',
+            'remaining_seconds': remaining_seconds,
+        }), 429
 
     status_code, fallback_status = _call_chinguisoft_otp(payload)
     if fallback_status:
-        user.otp_requested_at = previous_requested_at
+        User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
         db.session.commit()
         return _otp_error(fallback_status)
     if status_code not in CHINGUISOFT_ALLOWED_STATUSES:
@@ -280,17 +294,17 @@ def forgot_password():
             'Unexpected Chinguisoft password reset status: %s',
             status_code,
         )
-        user.otp_requested_at = previous_requested_at
+        User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
         db.session.commit()
         return _otp_error(503)
     if status_code != 200:
-        user.otp_requested_at = previous_requested_at
+        User.query.filter_by(id=result['id']).update({'otp_requested_at': None})
         db.session.commit()
         return _otp_error(status_code)
 
     return jsonify({
         'message': 'تم إرسال رمز التحقق بنجاح',
-        'user': {'name': user.name, 'phone': user.phone},
+        'user': {'name': result['name'], 'phone': result['phone']},
     }), 200
 
 
