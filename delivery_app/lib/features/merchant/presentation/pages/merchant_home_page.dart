@@ -63,7 +63,7 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isAr ? 'مساحة التاجر' : 'Espace commerçant'),
+        title: _MerchantAvatarButton(avatarUrl: avatarUrl, radius: 17),
         actions: const [LanguageButton(), LogoutButton()],
       ),
       body: ListView(
@@ -85,20 +85,7 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.white24,
-                        backgroundImage: avatarUrl == null
-                            ? null
-                            : NetworkImage(avatarUrl),
-                        child: avatarUrl == null
-                            ? const Icon(
-                                Icons.storefront,
-                                color: Colors.white,
-                                size: 30,
-                              )
-                            : null,
-                      ),
+                      _MerchantAvatar(avatarUrl: avatarUrl, radius: 28),
                       Positioned(
                         right: -2,
                         bottom: -2,
@@ -164,6 +151,47 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
     if (path == null || path.isEmpty) return null;
     if (path.startsWith('http')) return path;
     return '${AppConstants.baseUrl.replaceAll('/api', '')}$path';
+  }
+}
+
+class _MerchantAvatarButton extends StatelessWidget {
+  const _MerchantAvatarButton({required this.avatarUrl, required this.radius});
+
+  final String? avatarUrl;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: InkWell(
+        onTap: () => context.go('/merchant/profile'),
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: _MerchantAvatar(avatarUrl: avatarUrl, radius: radius),
+        ),
+      ),
+    );
+  }
+}
+
+class _MerchantAvatar extends StatelessWidget {
+  const _MerchantAvatar({required this.avatarUrl, required this.radius});
+
+  final String? avatarUrl;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.white24,
+      backgroundImage: avatarUrl == null ? null : NetworkImage(avatarUrl!),
+      child: avatarUrl == null
+          ? Icon(Icons.storefront, color: Colors.white, size: radius)
+          : null,
+    );
   }
 }
 
