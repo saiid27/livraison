@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
 import '../../../../core/widgets/logout_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../providers/merchant_provider.dart';
 
 class MerchantHomePage extends ConsumerStatefulWidget {
   const MerchantHomePage({super.key});
@@ -63,7 +66,11 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: _MerchantAvatarButton(avatarUrl: avatarUrl, radius: 17),
+        title: _MerchantAvatarButton(
+          avatarUrl: avatarUrl,
+          radius: 17,
+          onTap: () => _showProfileMenu(isAr),
+        ),
         actions: const [LanguageButton(), LogoutButton()],
       ),
       body: ListView(
@@ -80,7 +87,7 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
             child: Row(
               children: [
                 InkWell(
-                  onTap: () => context.go('/merchant/profile'),
+                  onTap: () => _showProfileMenu(isAr),
                   borderRadius: BorderRadius.circular(999),
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -152,20 +159,187 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
     if (path.startsWith('http')) return path;
     return '${AppConstants.baseUrl.replaceAll('/api', '')}$path';
   }
+
+  Future<void> _showProfileMenu(bool isAr) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(isAr ? 'تبديل الصورة' : 'Changer la photo'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _changeAvatar(isAr);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock_reset_outlined),
+              title: Text(
+                isAr ? 'تغيير كلمة المرور' : 'Changer le mot de passe',
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _showChangePasswordDialog(isAr);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.support_agent_outlined),
+              title: Text(isAr ? 'طلب المساعدة' : 'Demander de l’aide'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _showHelpDialog(isAr);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeAvatar(bool isAr) async {
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (image == null) return;
+
+    final user = ref.read(authProvider).user;
+    final error = await ref
+        .read(merchantProvider.notifier)
+        .updateProfile(
+          contactPhone: user?.merchantContactPhone ?? '',
+          paymentPhone: user?.merchantPaymentPhone ?? '',
+          avatarPath: image.path,
+        );
+    await ref.read(authProvider.notifier).refreshProfile();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: error == null ? null : AppColors.error,
+        content: Text(error ?? (isAr ? 'تم تبديل الصورة' : 'Photo changée')),
+      ),
+    );
+  }
+
+  Future<void> _showChangePasswordDialog(bool isAr) async {
+    final currentCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isAr ? 'تغيير كلمة المرور' : 'Changer le mot de passe'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentCtrl,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: isAr ? 'كلمة المرور الحالية' : 'Mot de passe actuel',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: newCtrl,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: isAr
+                    ? 'كلمة المرور الجديدة'
+                    : 'Nouveau mot de passe',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(isAr ? 'إلغاء' : 'Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(isAr ? 'حفظ' : 'Enregistrer'),
+          ),
+        ],
+      ),
+    );
+    final currentPassword = currentCtrl.text;
+    final newPassword = newCtrl.text;
+    currentCtrl.dispose();
+    newCtrl.dispose();
+    if (confirmed != true) return;
+
+    try {
+      await ApiClient.instance.put(
+        '/auth/change-password',
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        },
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAr ? 'تم تغيير كلمة المرور' : 'Mot de passe changé'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(
+            isAr
+                ? 'تعذر تغيير كلمة المرور'
+                : 'Impossible de changer le mot de passe',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showHelpDialog(bool isAr) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isAr ? 'طلب المساعدة' : 'Aide'),
+        content: Text(
+          isAr
+              ? 'نحن دائمًا في خدمتكم.\n\nواتساب: 22233398\nواتساب: 34339292\nواتساب: 41196566'
+              : 'Nous sommes toujours à votre service.\n\nWhatsApp : 22233398\nWhatsApp : 34339292\nWhatsApp : 41196566',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(isAr ? 'حسنًا' : 'OK'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MerchantAvatarButton extends StatelessWidget {
-  const _MerchantAvatarButton({required this.avatarUrl, required this.radius});
+  const _MerchantAvatarButton({
+    required this.avatarUrl,
+    required this.radius,
+    required this.onTap,
+  });
 
   final String? avatarUrl;
   final double radius;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: InkWell(
-        onTap: () => context.go('/merchant/profile'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Padding(
           padding: const EdgeInsets.all(2),

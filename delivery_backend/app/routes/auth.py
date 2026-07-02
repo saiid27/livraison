@@ -405,6 +405,29 @@ def reset_password():
     return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200
 
 
+@auth_bp.route('/change-password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    user = User.query.get(get_jwt_identity())
+    if not user:
+        return jsonify({'message': 'Utilisateur introuvable'}), 404
+
+    data = request.get_json(silent=True) or {}
+    current_password = str(data.get('current_password', ''))
+    new_password = str(data.get('new_password', ''))
+
+    if not current_password or not new_password:
+        return jsonify({'message': 'كلمة المرور الحالية والجديدة مطلوبة'}), 400
+    if len(new_password) < 6:
+        return jsonify({'message': 'كلمة المرور يجب أن تحتوي على 6 أحرف على الأقل'}), 400
+    if not bcrypt.check_password_hash(user.password_hash, current_password):
+        return jsonify({'message': 'كلمة المرور الحالية غير صحيحة'}), 401
+
+    user.password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    db.session.commit()
+    return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200
+
+
 @auth_bp.route('/account-deletion-requests', methods=['POST'])
 def request_account_deletion():
     data = request.get_json(silent=True) or {}

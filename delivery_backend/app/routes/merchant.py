@@ -64,10 +64,16 @@ def update_profile():
     data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     contact_phone = str(data.get('merchant_contact_phone', '')).strip()
     payment_phone = str(data.get('merchant_payment_phone', '')).strip()
+    has_new_avatar = (
+        'profile_image' in request.files and request.files['profile_image'].filename
+    )
+
+    if not merchant.avatar and not has_new_avatar:
+        return jsonify({'message': 'صورة البروفايل إلزامية'}), 400
 
     merchant.merchant_contact_phone = contact_phone or None
     merchant.merchant_payment_phone = payment_phone or None
-    if 'profile_image' in request.files and request.files['profile_image'].filename:
+    if has_new_avatar:
         try:
             merchant.avatar = _save_upload(request.files['profile_image'], 'merchant_profiles')
         except ValueError as error:

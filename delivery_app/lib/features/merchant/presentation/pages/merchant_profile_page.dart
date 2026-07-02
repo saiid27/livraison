@@ -38,6 +38,22 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
   }
 
   Future<void> _save(bool isAr) async {
+    final currentAvatar = ref.read(authProvider).user?.avatar;
+    if ((currentAvatar == null || currentAvatar.isEmpty) &&
+        _avatarPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(
+            isAr
+                ? 'صورة البروفايل إلزامية'
+                : 'La photo de profil est obligatoire',
+          ),
+        ),
+      );
+      return;
+    }
+
     final error = await ref
         .read(merchantProvider.notifier)
         .updateProfile(
