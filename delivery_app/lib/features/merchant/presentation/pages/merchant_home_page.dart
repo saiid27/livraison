@@ -177,6 +177,26 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: Text(
+                isAr
+                    ? 'رقم التواصل ورقم الدفع'
+                    : 'Contact et numéro de paiement',
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                context.go('/merchant/profile');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.payments_outlined),
+              title: Text(isAr ? 'وسائل الدفع' : 'Moyens de paiement'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                context.go('/merchant/profile');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.lock_reset_outlined),
               title: Text(
                 isAr ? 'تغيير كلمة المرور' : 'Changer le mot de passe',
