@@ -181,22 +181,18 @@ class _OrderCard extends ConsumerWidget {
                 onTap: () => _viewScreenshot(context, order.screenshotUrl!),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        order.screenshotUrl!,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                    _ProofThumb(url: order.screenshotUrl!),
                     const SizedBox(width: 8),
-                    Text(
-                      isAr ? 'عرض إثبات الدفع' : 'Voir la preuve de paiement',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                    Expanded(
+                      child: Text(
+                        isAr ? 'عرض إثبات الدفع' : 'Voir la preuve de paiement',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -243,7 +239,32 @@ class _OrderCard extends ConsumerWidget {
       builder: (ctx) => Dialog(
         insetPadding: const EdgeInsets.all(16),
         child: InteractiveViewer(
-          child: Image.network(url, fit: BoxFit.contain),
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Container(
+              padding: const EdgeInsets.all(28),
+              color: Colors.white,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.broken_image_outlined,
+                    size: 52,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isAr
+                        ? 'تعذر تحميل صورة إثبات الدفع'
+                        : 'Impossible de charger la preuve de paiement',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -262,6 +283,30 @@ class _OrderCard extends ConsumerWidget {
       SnackBar(
         backgroundColor: error == null ? null : AppColors.error,
         content: Text(error ?? (isAr ? 'تم التحديث' : 'Mis à jour')),
+      ),
+    );
+  }
+}
+
+class _ProofThumb extends StatelessWidget {
+  const _ProofThumb({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 56,
+        height: 56,
+        color: AppColors.primary.withValues(alpha: 0.08),
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
+        ),
       ),
     );
   }
