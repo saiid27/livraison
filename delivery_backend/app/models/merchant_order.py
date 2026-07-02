@@ -29,6 +29,11 @@ class MerchantOrder(db.Model):
             'merchant_name': self.merchant.name if self.merchant else None,
             'merchant_contact_phone': self.merchant.merchant_contact_phone if self.merchant else None,
             'merchant_payment_phone': self.merchant.merchant_payment_phone if self.merchant else None,
+            'merchant_payment_methods': [
+                method.to_dict()
+                for method in (self.merchant.merchant_payment_methods if self.merchant else [])
+                if method.is_active
+            ],
             'client_id': self.client_id,
             'client_name': self.client.name if self.client else None,
             'client_phone': self.client.phone if self.client else None,

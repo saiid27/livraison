@@ -116,13 +116,20 @@ class _ProductCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(
-              isAr
-                  ? 'رقم الدفع: ${product.merchantPaymentPhone ?? 'غير محدد'} | التواصل: ${product.merchantContactPhone ?? 'غير محدد'}'
-                  : 'Paiement : ${product.merchantPaymentPhone ?? '—'} | Contact : ${product.merchantContactPhone ?? '—'}',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                _paymentInfo,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  height: 1.45,
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -179,5 +186,22 @@ class _ProductCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String get _paymentInfo {
+    final contact = product.merchantContactPhone ?? (isAr ? 'غير محدد' : '—');
+    final methods = product.merchantPaymentMethods;
+    if (methods.isNotEmpty) {
+      final lines = methods
+          .map((method) => '${method.name}: ${method.phoneNumber}')
+          .join('\n');
+      return isAr
+          ? 'طرق الدفع:\n$lines\nالتواصل: $contact'
+          : 'Moyens de paiement:\n$lines\nContact: $contact';
+    }
+    final payment = product.merchantPaymentPhone ?? (isAr ? 'غير محدد' : '—');
+    return isAr
+        ? 'رقم الدفع: $payment | التواصل: $contact'
+        : 'Paiement: $payment | Contact: $contact';
   }
 }

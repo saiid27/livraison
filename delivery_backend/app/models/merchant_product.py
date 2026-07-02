@@ -24,6 +24,11 @@ class MerchantProduct(db.Model):
             'merchant_name': self.merchant.name if self.merchant else None,
             'merchant_contact_phone': self.merchant.merchant_contact_phone if self.merchant else None,
             'merchant_payment_phone': self.merchant.merchant_payment_phone if self.merchant else None,
+            'merchant_payment_methods': [
+                method.to_dict()
+                for method in (self.merchant.merchant_payment_methods if self.merchant else [])
+                if method.is_active
+            ],
             'name': self.name,
             'price': self.price,
             'quantity': self.quantity,

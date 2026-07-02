@@ -2,12 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../data/models/merchant_order_model.dart';
+import '../../data/models/merchant_payment_method_model.dart';
 import '../../data/models/merchant_product_model.dart';
 
 class MerchantState {
   const MerchantState({
     this.products = const [],
     this.orders = const [],
+    this.paymentMethods = const [],
     this.isLoading = false,
     this.isSubmitting = false,
     this.error,
@@ -15,6 +17,7 @@ class MerchantState {
 
   final List<MerchantProductModel> products;
   final List<MerchantOrderModel> orders;
+  final List<MerchantPaymentMethodModel> paymentMethods;
   final bool isLoading;
   final bool isSubmitting;
   final String? error;
@@ -22,6 +25,7 @@ class MerchantState {
   MerchantState copyWith({
     List<MerchantProductModel>? products,
     List<MerchantOrderModel>? orders,
+    List<MerchantPaymentMethodModel>? paymentMethods,
     bool? isLoading,
     bool? isSubmitting,
     String? error,
@@ -29,6 +33,7 @@ class MerchantState {
     return MerchantState(
       products: products ?? this.products,
       orders: orders ?? this.orders,
+      paymentMethods: paymentMethods ?? this.paymentMethods,
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       error: error,
@@ -132,6 +137,43 @@ class MerchantNotifier extends StateNotifier<MerchantState> {
           'profile_image': await MultipartFile.fromFile(avatarPath),
       });
       await ApiClient.instance.put('/merchant/profile', data: data);
+      state = state.copyWith(isSubmitting: false);
+      return null;
+    } on DioException catch (error) {
+      state = state.copyWith(isSubmitting: false);
+      return error.response?.data['message'] ?? 'Erreur';
+    }
+  }
+
+  Future<void> loadPaymentMethods() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await ApiClient.instance.get(
+        '/merchant/payment-methods',
+      );
+      final methods = (response.data['payment_methods'] as List)
+          .map((item) => MerchantPaymentMethodModel.fromJson(item))
+          .toList();
+      state = state.copyWith(paymentMethods: methods, isLoading: false);
+    } on DioException catch (error) {
+      state = state.copyWith(
+        isLoading: false,
+        error: error.response?.data['message'] ?? 'Erreur',
+      );
+    }
+  }
+
+  Future<String?> addPaymentMethod({
+    required String name,
+    required String phoneNumber,
+  }) async {
+    state = state.copyWith(isSubmitting: true);
+    try {
+      await ApiClient.instance.post(
+        '/merchant/payment-methods',
+        data: {'name': name, 'phone_number': phoneNumber},
+      );
+      await loadPaymentMethods();
       state = state.copyWith(isSubmitting: false);
       return null;
     } on DioException catch (error) {

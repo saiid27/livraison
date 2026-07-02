@@ -18,6 +18,8 @@ class MerchantProfilePage extends ConsumerStatefulWidget {
 class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
   final _contactCtrl = TextEditingController();
   final _paymentCtrl = TextEditingController();
+  final _methodNameCtrl = TextEditingController();
+  final _methodPhoneCtrl = TextEditingController();
   String? _avatarPath;
 
   @override
@@ -27,6 +29,7 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
       final user = ref.read(authProvider).user;
       _contactCtrl.text = user?.merchantContactPhone ?? '';
       _paymentCtrl.text = user?.merchantPaymentPhone ?? '';
+      ref.read(merchantProvider.notifier).loadPaymentMethods();
     });
   }
 
@@ -34,6 +37,8 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
   void dispose() {
     _contactCtrl.dispose();
     _paymentCtrl.dispose();
+    _methodNameCtrl.dispose();
+    _methodPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -79,10 +84,49 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
     if (image != null) setState(() => _avatarPath = image.path);
   }
 
+  Future<void> _addPaymentMethod(bool isAr) async {
+    if (_methodNameCtrl.text.trim().isEmpty ||
+        _methodPhoneCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(
+            isAr
+                ? 'اكتب اسم طريقة الدفع ورقمها'
+                : 'Ajoutez le nom et le numéro',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final error = await ref
+        .read(merchantProvider.notifier)
+        .addPaymentMethod(
+          name: _methodNameCtrl.text.trim(),
+          phoneNumber: _methodPhoneCtrl.text.trim(),
+        );
+    if (!mounted) return;
+    if (error == null) {
+      _methodNameCtrl.clear();
+      _methodPhoneCtrl.clear();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: error == null ? null : AppColors.error,
+        content: Text(
+          error ??
+              (isAr ? 'تمت إضافة طريقة الدفع' : 'Moyen de paiement ajouté'),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final state = ref.watch(merchantProvider);
+    final methods = state.paymentMethods;
 
     return Scaffold(
       appBar: AppBar(
@@ -128,6 +172,55 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
             icon: const Icon(Icons.save_outlined),
             label: Text(isAr ? 'حفظ' : 'Enregistrer'),
           ),
+          const SizedBox(height: 28),
+          Text(
+            isAr ? 'طرق الدفع' : 'Moyens de paiement',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _methodNameCtrl,
+            decoration: InputDecoration(
+              labelText: isAr ? 'اسم طريقة الدفع' : 'Nom du moyen',
+              hintText: isAr ? 'مثال: بنكيلي' : 'Ex: Bankily',
+              prefixIcon: const Icon(Icons.credit_card_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _methodPhoneCtrl,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: isAr ? 'رقم الدفع' : 'Numéro de paiement',
+              prefixIcon: const Icon(Icons.phone_android_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: state.isSubmitting
+                ? null
+                : () => _addPaymentMethod(isAr),
+            icon: const Icon(Icons.add_card_outlined),
+            label: Text(isAr ? 'إضافة طريقة دفع' : 'Ajouter un moyen'),
+          ),
+          const SizedBox(height: 12),
+          if (methods.isEmpty)
+            Text(
+              isAr
+                  ? 'لم تتم إضافة طرق دفع بعد'
+                  : 'Aucun moyen de paiement ajouté',
+              style: const TextStyle(color: AppColors.textSecondary),
+            )
+          else
+            ...methods.map(
+              (method) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.payments_outlined),
+                  title: Text(method.name),
+                  subtitle: Text(method.phoneNumber),
+                ),
+              ),
+            ),
         ],
       ),
     );

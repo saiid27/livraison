@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_constants.dart';
+import 'merchant_payment_method_model.dart';
 
 class MerchantOrderModel {
   const MerchantOrderModel({
@@ -12,6 +13,7 @@ class MerchantOrderModel {
     this.merchantName,
     this.merchantContactPhone,
     this.merchantPaymentPhone,
+    this.merchantPaymentMethods = const [],
     this.clientName,
     this.clientPhone,
     this.productImage,
@@ -21,6 +23,7 @@ class MerchantOrderModel {
   final String? merchantName;
   final String? merchantContactPhone;
   final String? merchantPaymentPhone;
+  final List<MerchantPaymentMethodModel> merchantPaymentMethods;
   final String? clientName;
   final String? clientPhone;
   final String productName;
@@ -43,6 +46,9 @@ class MerchantOrderModel {
       merchantName: json['merchant_name'],
       merchantContactPhone: json['merchant_contact_phone'],
       merchantPaymentPhone: json['merchant_payment_phone'],
+      merchantPaymentMethods: (json['merchant_payment_methods'] as List? ?? [])
+          .map((item) => MerchantPaymentMethodModel.fromJson(item))
+          .toList(),
       clientName: json['client_name'],
       clientPhone: json['client_phone'],
       productName: json['product_name'] ?? '',

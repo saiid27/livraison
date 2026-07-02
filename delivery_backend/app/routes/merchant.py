@@ -9,6 +9,7 @@ from app import db
 from app.models.user import User
 from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
+from app.models.merchant_payment_method import MerchantPaymentMethod
 from app.utils.decorators import role_required
 
 merchant_bp = Blueprint('merchant', __name__)
@@ -80,6 +81,40 @@ def update_profile():
             return jsonify({'message': str(error)}), 400
     db.session.commit()
     return jsonify({'user': merchant.to_dict(), 'message': 'Profil mis à jour'}), 200
+
+
+@merchant_bp.route('/payment-methods', methods=['GET'])
+@jwt_required()
+@role_required('merchant')
+def list_payment_methods():
+    merchant_id = get_jwt_identity()
+    methods = MerchantPaymentMethod.query.filter_by(
+        merchant_id=merchant_id,
+        is_active=True,
+    ).order_by(MerchantPaymentMethod.created_at.desc()).all()
+    return jsonify({'payment_methods': [method.to_dict() for method in methods]}), 200
+
+
+@merchant_bp.route('/payment-methods', methods=['POST'])
+@jwt_required()
+@role_required('merchant')
+def create_payment_method():
+    merchant_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+    name = str(data.get('name', '')).strip()
+    phone_number = str(data.get('phone_number', '')).strip()
+
+    if not name or not phone_number:
+        return jsonify({'message': 'اسم طريقة الدفع ورقمها مطلوبان'}), 400
+
+    method = MerchantPaymentMethod(
+        merchant_id=merchant_id,
+        name=name,
+        phone_number=phone_number,
+    )
+    db.session.add(method)
+    db.session.commit()
+    return jsonify({'payment_method': method.to_dict(), 'message': 'تمت إضافة طريقة الدفع'}), 201
 
 
 @merchant_bp.route('/products', methods=['GET'])
