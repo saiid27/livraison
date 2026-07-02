@@ -10,6 +10,8 @@ class User {
   final String? vehicleImage;
   final String? vehicleRegistrationImage;
   final String? permitImage;
+  final String? merchantContactPhone;
+  final String? merchantPaymentPhone;
 
   const User({
     required this.id,
@@ -23,5 +25,7 @@ class User {
     this.vehicleImage,
     this.vehicleRegistrationImage,
     this.permitImage,
+    this.merchantContactPhone,
+    this.merchantPaymentPhone,
   });
 }

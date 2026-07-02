@@ -74,7 +74,7 @@ class ClientHomePage extends ConsumerWidget {
                 : 'Parcourir et commander les produits des commerçants',
             icon: Icons.shopping_bag_outlined,
             color: AppColors.secondary,
-            onTap: () => _comingSoon(context, isAr),
+            onTap: () => context.go('/client/marketplace'),
           ),
           const SizedBox(height: 18),
           Align(
@@ -82,18 +82,6 @@ class ClientHomePage extends ConsumerWidget {
             child: _CallCenterButton(isAr: isAr),
           ),
         ],
-      ),
-    );
-  }
-
-  void _comingSoon(BuildContext context, bool isAr) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isAr
-              ? 'سيتم تفعيل هذه الخدمة لاحقًا'
-              : 'Service disponible prochainement',
-        ),
       ),
     );
   }

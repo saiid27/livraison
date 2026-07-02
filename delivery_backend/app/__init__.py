@@ -44,11 +44,13 @@ def create_app():
     from app.routes.client import client_bp
     from app.routes.livreur import livreur_bp
     from app.routes.admin import admin_bp
+    from app.routes.merchant import merchant_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(client_bp, url_prefix='/api/client')
     app.register_blueprint(livreur_bp, url_prefix='/api/livreur')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(merchant_bp, url_prefix='/api/merchant')
 
     @app.route('/api/health')
     def health():
@@ -91,6 +93,8 @@ def create_app():
         from app.models.payment_method import PaymentMethod  # noqa: F401
         from app.models.recharge_request import RechargeRequest  # noqa: F401
         from app.models.account_deletion_request import AccountDeletionRequest  # noqa: F401
+        from app.models.merchant_product import MerchantProduct  # noqa: F401
+        from app.models.merchant_order import MerchantOrder  # noqa: F401
 
         enum_exists = db.session.execute(
             text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')")
@@ -132,6 +136,8 @@ def create_app():
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_type VARCHAR(20) NOT NULL DEFAULT 'delivery'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS balance FLOAT NOT NULL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(10) NOT NULL DEFAULT 'moto'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS merchant_contact_phone VARCHAR(20)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS merchant_payment_phone VARCHAR(20)",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
         ):
             db.session.execute(text(statement))

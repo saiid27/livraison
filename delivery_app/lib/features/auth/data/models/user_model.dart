@@ -13,6 +13,8 @@ class UserModel extends User {
     super.vehicleImage,
     super.vehicleRegistrationImage,
     super.permitImage,
+    super.merchantContactPhone,
+    super.merchantPaymentPhone,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,8 @@ class UserModel extends User {
       vehicleImage: json['vehicle_image'],
       vehicleRegistrationImage: json['vehicle_registration_image'],
       permitImage: json['permit_image'],
+      merchantContactPhone: json['merchant_contact_phone'],
+      merchantPaymentPhone: json['merchant_payment_phone'],
     );
   }
 
@@ -43,5 +47,7 @@ class UserModel extends User {
     'vehicle_image': vehicleImage,
     'vehicle_registration_image': vehicleRegistrationImage,
     'permit_image': permitImage,
+    'merchant_contact_phone': merchantContactPhone,
+    'merchant_payment_phone': merchantPaymentPhone,
   };
 }

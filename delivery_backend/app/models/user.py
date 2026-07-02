@@ -28,6 +28,8 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     balance = db.Column(db.Float, nullable=False, default=0.0)
     vehicle_type = db.Column(db.String(10), nullable=False, default='moto')
+    merchant_contact_phone = db.Column(db.String(20), nullable=True)
+    merchant_payment_phone = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations
@@ -50,5 +52,7 @@ class User(db.Model):
             'is_active': self.is_active,
             'balance': self.balance,
             'vehicle_type': self.vehicle_type,
+            'merchant_contact_phone': self.merchant_contact_phone,
+            'merchant_payment_phone': self.merchant_payment_phone,
             'created_at': self.created_at.isoformat(),
         }

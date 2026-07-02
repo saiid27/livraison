@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
@@ -18,26 +19,37 @@ class MerchantHomePage extends ConsumerWidget {
         isAr ? 'إضافة منتجات' : 'Ajouter des produits',
         Icons.add_box_outlined,
         AppColors.primary,
+        () => context.go('/merchant/products/add'),
       ),
       _MerchantItem(
         isAr ? 'المنتجات المتوفرة' : 'Produits disponibles',
         Icons.inventory_2_outlined,
         AppColors.success,
+        () => context.go('/merchant/products'),
       ),
       _MerchantItem(
         isAr ? 'سجل البيع' : 'Historique des ventes',
         Icons.point_of_sale_outlined,
         AppColors.secondary,
+        () => context.go('/merchant/sales'),
       ),
       _MerchantItem(
         isAr ? 'الطلبات' : 'Commandes',
         Icons.shopping_bag_outlined,
         Colors.purple,
+        () => context.go('/merchant/orders'),
       ),
       _MerchantItem(
         isAr ? 'سجل الطلبات' : 'Historique des commandes',
         Icons.history_rounded,
         Colors.teal,
+        () => context.go('/merchant/order-history'),
+      ),
+      _MerchantItem(
+        isAr ? 'ملف التاجر' : 'Profil commerçant',
+        Icons.store_mall_directory_outlined,
+        Colors.indigo,
+        () => context.go('/merchant/profile'),
       ),
     ];
 
@@ -96,25 +108,8 @@ class MerchantHomePage extends ConsumerWidget {
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
-          ...items.map(
-            (item) => _MerchantMenuCard(
-              item: item,
-              onTap: () => _comingSoon(context, isAr),
-            ),
-          ),
+          ...items.map((item) => _MerchantMenuCard(item: item)),
         ],
-      ),
-    );
-  }
-
-  void _comingSoon(BuildContext context, bool isAr) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isAr
-              ? 'سيتم تفعيل هذه الخاصية لاحقًا'
-              : 'Fonction disponible prochainement',
-        ),
       ),
     );
   }
@@ -124,22 +119,22 @@ class _MerchantItem {
   final String title;
   final IconData icon;
   final Color color;
+  final VoidCallback onTap;
 
-  const _MerchantItem(this.title, this.icon, this.color);
+  const _MerchantItem(this.title, this.icon, this.color, this.onTap);
 }
 
 class _MerchantMenuCard extends StatelessWidget {
   final _MerchantItem item;
-  final VoidCallback onTap;
 
-  const _MerchantMenuCard({required this.item, required this.onTap});
+  const _MerchantMenuCard({required this.item});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 11),
       child: ListTile(
-        onTap: onTap,
+        onTap: item.onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           width: 48,

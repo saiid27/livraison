@@ -28,6 +28,11 @@ import '../../features/admin/presentation/pages/admin_payment_methods_page.dart'
 import '../../features/admin/presentation/pages/admin_account_deletion_requests_page.dart';
 import '../../features/livreur/presentation/pages/livreur_recharge_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
+import '../../features/merchant/presentation/pages/merchant_add_product_page.dart';
+import '../../features/merchant/presentation/pages/merchant_products_page.dart';
+import '../../features/merchant/presentation/pages/merchant_orders_page.dart';
+import '../../features/merchant/presentation/pages/merchant_profile_page.dart';
+import '../../features/client/presentation/pages/client_marketplace_page.dart';
 import '../constants/app_constants.dart';
 import '../providers/language_provider.dart';
 
@@ -105,6 +110,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/merchant', builder: (_, __) => const MerchantHomePage()),
       GoRoute(
+        path: '/merchant/products/add',
+        builder: (_, __) => const MerchantAddProductPage(),
+      ),
+      GoRoute(
+        path: '/merchant/products',
+        builder: (_, __) => const MerchantProductsPage(),
+      ),
+      GoRoute(
+        path: '/merchant/orders',
+        builder: (_, __) => const MerchantOrdersPage(),
+      ),
+      GoRoute(
+        path: '/merchant/sales',
+        builder: (_, __) => const MerchantOrdersPage(salesOnly: true),
+      ),
+      GoRoute(
+        path: '/merchant/order-history',
+        builder: (_, __) => const MerchantOrdersPage(allOrders: true),
+      ),
+      GoRoute(
+        path: '/merchant/profile',
+        builder: (_, __) => const MerchantProfilePage(),
+      ),
+      GoRoute(
         path: '/client/order-search/:orderId',
         builder: (_, state) =>
             ClientOrderSearchPage(orderId: state.pathParameters['orderId']!),
@@ -134,6 +163,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/client/profile',
             builder: (_, __) => const ClientProfilePage(),
+          ),
+          GoRoute(
+            path: '/client/marketplace',
+            builder: (_, __) => const ClientMarketplacePage(),
           ),
         ],
       ),

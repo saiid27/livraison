@@ -11,6 +11,8 @@ from app.models.user import User
 from app.models.payment_method import PaymentMethod
 from app.models.recharge_request import RechargeRequest
 from app.models.account_deletion_request import AccountDeletionRequest
+from app.models.merchant_product import MerchantProduct
+from app.models.merchant_order import MerchantOrder
 from app.utils.decorators import role_required
 from datetime import datetime
 
@@ -299,6 +301,9 @@ def approve_account_deletion(req_id):
 
     if user:
         RechargeRequest.query.filter_by(captain_id=user.id).delete()
+        MerchantOrder.query.filter_by(client_id=user.id).delete()
+        MerchantOrder.query.filter_by(merchant_id=user.id).delete()
+        MerchantProduct.query.filter_by(merchant_id=user.id).delete()
         Order.query.filter_by(client_id=user.id).delete()
         Order.query.filter_by(livreur_id=user.id).update(
             {'livreur_id': None},
