@@ -39,6 +39,17 @@ class MarketplaceState {
 class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
   MarketplaceNotifier() : super(const MarketplaceState());
 
+  String _errorMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
+    }
+    if (data is String && data.isNotEmpty) {
+      return data;
+    }
+    return 'Erreur';
+  }
+
   Future<void> loadProducts() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -48,10 +59,7 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
           .toList();
       state = state.copyWith(products: products, isLoading: false);
     } on DioException catch (error) {
-      state = state.copyWith(
-        isLoading: false,
-        error: error.response?.data['message'] ?? 'Erreur',
-      );
+      state = state.copyWith(isLoading: false, error: _errorMessage(error));
     }
   }
 
@@ -76,16 +84,14 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
       final response = await ApiClient.instance.post(
         '/client/product-orders',
         data: data,
+        options: Options(contentType: 'multipart/form-data'),
       );
       final order = MerchantOrderModel.fromJson(response.data['order']);
       await loadProducts();
       state = state.copyWith(isSubmitting: false);
       return order;
     } on DioException catch (error) {
-      state = state.copyWith(
-        isSubmitting: false,
-        error: error.response?.data['message'] ?? 'Erreur',
-      );
+      state = state.copyWith(isSubmitting: false, error: _errorMessage(error));
       return null;
     }
   }
