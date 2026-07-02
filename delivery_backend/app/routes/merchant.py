@@ -16,16 +16,20 @@ merchant_bp = Blueprint('merchant', __name__)
 _ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
 
 
-def _save_product_image(upload):
+def _save_upload(upload, subfolder):
     original = secure_filename(upload.filename or '')
     ext = Path(original).suffix.lower()
     if ext not in _ALLOWED_EXTS:
         raise ValueError('Format image non pris en charge')
-    target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'products')
+    target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
     os.makedirs(target_dir, exist_ok=True)
     filename = f'{uuid4().hex}{ext}'
     upload.save(os.path.join(target_dir, filename))
-    return f'/uploads/products/{filename}'
+    return f'/uploads/{subfolder}/{filename}'
+
+
+def _save_product_image(upload):
+    return _save_upload(upload, 'products')
 
 
 def _float_value(value):
@@ -57,12 +61,17 @@ def get_profile():
 @role_required('merchant')
 def update_profile():
     merchant = User.query.get(get_jwt_identity())
-    data = request.get_json(silent=True) or {}
+    data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     contact_phone = str(data.get('merchant_contact_phone', '')).strip()
     payment_phone = str(data.get('merchant_payment_phone', '')).strip()
 
     merchant.merchant_contact_phone = contact_phone or None
     merchant.merchant_payment_phone = payment_phone or None
+    if 'profile_image' in request.files and request.files['profile_image'].filename:
+        try:
+            merchant.avatar = _save_upload(request.files['profile_image'], 'merchant_profiles')
+        except ValueError as error:
+            return jsonify({'message': str(error)}), 400
     db.session.commit()
     return jsonify({'user': merchant.to_dict(), 'message': 'Profil mis à jour'}), 200
 

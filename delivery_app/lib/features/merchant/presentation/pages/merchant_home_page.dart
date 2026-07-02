@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
 import '../../../../core/widgets/logout_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
-class MerchantHomePage extends ConsumerWidget {
+class MerchantHomePage extends ConsumerStatefulWidget {
   const MerchantHomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MerchantHomePage> createState() => _MerchantHomePageState();
+}
+
+class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(authProvider.notifier).refreshProfile());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final user = ref.watch(authProvider).user;
+    final avatarUrl = _imageUrl(user?.avatar);
     final items = [
       _MerchantItem(
         isAr ? 'إضافة منتجات' : 'Ajouter des produits',
@@ -72,14 +85,19 @@ class MerchantHomePage extends ConsumerWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 28,
                         backgroundColor: Colors.white24,
-                        child: Icon(
-                          Icons.storefront,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+                        backgroundImage: avatarUrl == null
+                            ? null
+                            : NetworkImage(avatarUrl),
+                        child: avatarUrl == null
+                            ? const Icon(
+                                Icons.storefront,
+                                color: Colors.white,
+                                size: 30,
+                              )
+                            : null,
                       ),
                       Positioned(
                         right: -2,
@@ -140,6 +158,12 @@ class MerchantHomePage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String? _imageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    return '${AppConstants.baseUrl.replaceAll('/api', '')}$path';
   }
 }
 

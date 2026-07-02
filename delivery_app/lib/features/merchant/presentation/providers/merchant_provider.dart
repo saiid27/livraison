@@ -121,16 +121,17 @@ class MerchantNotifier extends StateNotifier<MerchantState> {
   Future<String?> updateProfile({
     required String contactPhone,
     required String paymentPhone,
+    String? avatarPath,
   }) async {
     state = state.copyWith(isSubmitting: true);
     try {
-      await ApiClient.instance.put(
-        '/merchant/profile',
-        data: {
-          'merchant_contact_phone': contactPhone,
-          'merchant_payment_phone': paymentPhone,
-        },
-      );
+      final data = FormData.fromMap({
+        'merchant_contact_phone': contactPhone,
+        'merchant_payment_phone': paymentPhone,
+        if (avatarPath != null)
+          'profile_image': await MultipartFile.fromFile(avatarPath),
+      });
+      await ApiClient.instance.put('/merchant/profile', data: data);
       state = state.copyWith(isSubmitting: false);
       return null;
     } on DioException catch (error) {

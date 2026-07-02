@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -17,6 +18,7 @@ class MerchantProfilePage extends ConsumerStatefulWidget {
 class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
   final _contactCtrl = TextEditingController();
   final _paymentCtrl = TextEditingController();
+  String? _avatarPath;
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
         .updateProfile(
           contactPhone: _contactCtrl.text.trim(),
           paymentPhone: _paymentCtrl.text.trim(),
+          avatarPath: _avatarPath,
         );
     await ref.read(authProvider.notifier).refreshProfile();
     if (!mounted) return;
@@ -50,6 +53,14 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
         content: Text(error ?? (isAr ? 'تم حفظ الملف' : 'Profil enregistré')),
       ),
     );
+  }
+
+  Future<void> _pickAvatar() async {
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (image != null) setState(() => _avatarPath = image.path);
   }
 
   @override
@@ -68,6 +79,16 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(18),
         children: [
+          OutlinedButton.icon(
+            onPressed: _pickAvatar,
+            icon: const Icon(Icons.add_photo_alternate_outlined),
+            label: Text(
+              _avatarPath == null
+                  ? (isAr ? 'اختيار صورة البروفايل' : 'Choisir une photo')
+                  : (isAr ? 'تم اختيار الصورة' : 'Photo choisie'),
+            ),
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: _contactCtrl,
             keyboardType: TextInputType.phone,
