@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db, bcrypt
 from app.models.user import User
+from app.models.account_deletion_request import AccountDeletionRequest
 from sqlalchemy import text
 from pathlib import Path
 from uuid import uuid4
@@ -402,3 +403,70 @@ def reset_password():
     user.otp_verified_at = None
     db.session.commit()
     return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200
+
+
+@auth_bp.route('/account-deletion-requests', methods=['POST'])
+def request_account_deletion():
+    data = request.get_json(silent=True) or {}
+    phone = str(data.get('phone', '')).strip()
+    reason = str(data.get('reason', '')).strip()
+
+    if not phone:
+        return jsonify({'message': 'رقم الهاتف مطلوب'}), 400
+    if not reason:
+        return jsonify({'message': 'سبب طلب حذف الحساب مطلوب'}), 400
+
+    user = User.query.filter_by(phone=phone).first()
+    if not user:
+        return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
+
+    existing = AccountDeletionRequest.query.filter_by(
+        phone=phone,
+        status='pending',
+    ).first()
+    if existing:
+        return jsonify({'message': 'لديك طلب حذف حساب قيد المراجعة بالفعل'}), 409
+
+    deletion_request = AccountDeletionRequest(
+        user_id=user.id,
+        user_name=user.name,
+        phone=user.phone,
+        role=user.role,
+        reason=reason,
+    )
+    db.session.add(deletion_request)
+    db.session.commit()
+
+    return jsonify({
+        'request': deletion_request.to_dict(),
+        'message': 'تم إرسال طلب حذف الحساب إلى الإدارة',
+    }), 201
+
+
+@auth_bp.route('/account-deletion-requests/check-phone', methods=['POST'])
+def check_account_deletion_phone():
+    data = request.get_json(silent=True) or {}
+    phone = str(data.get('phone', '')).strip()
+
+    if not phone:
+        return jsonify({'message': 'رقم الهاتف مطلوب'}), 400
+
+    user = User.query.filter_by(phone=phone).first()
+    if not user:
+        return jsonify({'message': 'لا يوجد حساب بهذا الرقم'}), 404
+
+    existing = AccountDeletionRequest.query.filter_by(
+        phone=phone,
+        status='pending',
+    ).first()
+    if existing:
+        return jsonify({'message': 'لديك طلب حذف حساب قيد المراجعة بالفعل'}), 409
+
+    return jsonify({
+        'user': {
+            'name': user.name,
+            'phone': user.phone,
+            'role': user.role,
+        },
+        'message': 'تم التحقق من وجود الحساب',
+    }), 200

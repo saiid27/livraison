@@ -6,6 +6,8 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/captain_pending_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
+import '../../features/auth/presentation/pages/public_info_page.dart';
+import '../../features/auth/presentation/pages/account_deletion_request_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/client/presentation/pages/client_home_page.dart';
 import '../../features/client/presentation/pages/client_orders_page.dart';
@@ -23,6 +25,7 @@ import '../../features/admin/presentation/pages/admin_users_page.dart';
 import '../../features/admin/presentation/pages/admin_approvals_page.dart';
 import '../../features/admin/presentation/pages/admin_recharge_requests_page.dart';
 import '../../features/admin/presentation/pages/admin_payment_methods_page.dart';
+import '../../features/admin/presentation/pages/admin_account_deletion_requests_page.dart';
 import '../../features/livreur/presentation/pages/livreur_recharge_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../constants/app_constants.dart';
@@ -46,6 +49,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/about' ||
+          state.matchedLocation == '/privacy' ||
+          state.matchedLocation == '/contact' ||
+          state.matchedLocation == '/delete-account' ||
           state.matchedLocation == '/splash';
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
@@ -68,6 +75,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashPage()),
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+      GoRoute(
+        path: '/about',
+        builder: (context, state) =>
+            const PublicInfoPage(type: PublicInfoType.about),
+      ),
+      GoRoute(
+        path: '/privacy',
+        builder: (context, state) =>
+            const PublicInfoPage(type: PublicInfoType.privacy),
+      ),
+      GoRoute(
+        path: '/contact',
+        builder: (context, state) =>
+            const PublicInfoPage(type: PublicInfoType.contact),
+      ),
+      GoRoute(
+        path: '/delete-account',
+        builder: (context, state) => const AccountDeletionRequestPage(),
+      ),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
       GoRoute(
         path: '/forgot-password',
@@ -200,6 +226,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/payment-methods',
             builder: (_, __) => const AdminPaymentMethodsPage(),
+          ),
+          GoRoute(
+            path: '/admin/account-deletion-requests',
+            builder: (_, __) => const AdminAccountDeletionRequestsPage(),
           ),
         ],
       ),

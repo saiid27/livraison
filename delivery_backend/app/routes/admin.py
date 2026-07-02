@@ -10,7 +10,9 @@ from app.models.order import Order
 from app.models.user import User
 from app.models.payment_method import PaymentMethod
 from app.models.recharge_request import RechargeRequest
+from app.models.account_deletion_request import AccountDeletionRequest
 from app.utils.decorators import role_required
+from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -265,3 +267,71 @@ def reject_recharge(req_id):
     req.rejection_reason = reason or None
     db.session.commit()
     return jsonify({'request': req.to_dict(), 'message': 'Demande refusée'}), 200
+
+
+# ── Account Deletion Requests ────────────────────────────────────────────────
+
+@admin_bp.route('/account-deletion-requests', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def list_account_deletion_requests():
+    status = request.args.get('status')
+    query = AccountDeletionRequest.query
+    if status:
+        query = query.filter_by(status=status)
+    requests_ = query.order_by(AccountDeletionRequest.created_at.desc()).all()
+    return jsonify({'requests': [r.to_dict() for r in requests_]}), 200
+
+
+@admin_bp.route('/account-deletion-requests/<int:req_id>/approve', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+def approve_account_deletion(req_id):
+    deletion_request = AccountDeletionRequest.query.get(req_id)
+    if not deletion_request:
+        return jsonify({'message': 'Demande introuvable'}), 404
+    if deletion_request.status != 'pending':
+        return jsonify({'message': 'Demande déjà traitée'}), 400
+
+    user = User.query.get(deletion_request.user_id)
+    if not user:
+        user = User.query.filter_by(phone=deletion_request.phone).first()
+
+    if user:
+        RechargeRequest.query.filter_by(captain_id=user.id).delete()
+        Order.query.filter_by(client_id=user.id).delete()
+        Order.query.filter_by(livreur_id=user.id).update(
+            {'livreur_id': None},
+            synchronize_session=False,
+        )
+        db.session.delete(user)
+
+    deletion_request.status = 'approved'
+    deletion_request.processed_at = datetime.utcnow()
+    deletion_request.user_id = None
+    db.session.commit()
+    return jsonify({
+        'request': deletion_request.to_dict(),
+        'message': 'Compte supprimé',
+    }), 200
+
+
+@admin_bp.route('/account-deletion-requests/<int:req_id>/reject', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+def reject_account_deletion(req_id):
+    deletion_request = AccountDeletionRequest.query.get(req_id)
+    if not deletion_request:
+        return jsonify({'message': 'Demande introuvable'}), 404
+    if deletion_request.status != 'pending':
+        return jsonify({'message': 'Demande déjà traitée'}), 400
+
+    data = request.get_json(silent=True) or {}
+    deletion_request.status = 'rejected'
+    deletion_request.rejection_reason = str(data.get('reason', '')).strip() or None
+    deletion_request.processed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({
+        'request': deletion_request.to_dict(),
+        'message': 'Demande refusée',
+    }), 200

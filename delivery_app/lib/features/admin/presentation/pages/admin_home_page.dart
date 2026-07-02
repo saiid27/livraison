@@ -38,6 +38,12 @@ class AdminHomePage extends ConsumerWidget {
         () => context.go('/admin/payment-methods'),
       ),
       _AdminItem(
+        isAr ? 'طلبات حذف الحساب' : 'Suppressions de comptes',
+        Icons.person_remove_outlined,
+        AppColors.error,
+        () => context.go('/admin/account-deletion-requests'),
+      ),
+      _AdminItem(
         isAr ? 'سجل الطلبات' : 'Historique des commandes',
         Icons.receipt_long_outlined,
         AppColors.primary,

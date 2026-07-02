@@ -90,6 +90,7 @@ def create_app():
         # Import new models so db.create_all() discovers their tables
         from app.models.payment_method import PaymentMethod  # noqa: F401
         from app.models.recharge_request import RechargeRequest  # noqa: F401
+        from app.models.account_deletion_request import AccountDeletionRequest  # noqa: F401
 
         enum_exists = db.session.execute(
             text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')")

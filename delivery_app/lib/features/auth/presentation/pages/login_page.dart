@@ -50,11 +50,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
+  List<_LoginInfoLink> _infoLinks(bool isAr) => [
+    _LoginInfoLink(title: isAr ? 'من نحن' : 'À propos', route: '/about'),
+    _LoginInfoLink(
+      title: isAr ? 'سياسة الخصوصية' : 'Confidentialité',
+      route: '/privacy',
+    ),
+    _LoginInfoLink(title: isAr ? 'تواصل معنا' : 'Contact', route: '/contact'),
+    _LoginInfoLink(
+      title: isAr ? 'طلب حذف حسابي' : 'Supprimer mon compte',
+      route: '/delete-account',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final s = ref.watch(stringsProvider);
     final locale = ref.watch(localeProvider);
+    final isAr = locale.languageCode == 'ar';
+    final infoLinks = _infoLinks(isAr);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -220,6 +235,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 28),
+                    Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final item in infoLinks) ...[
+                              _LoginInfoLinkText(
+                                item: item,
+                                onTap: () => context.push(item.route),
+                              ),
+                              if (item != infoLinks.last)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    '|',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                     const Spacer(),
                     const SizedBox(height: 24),
                     Center(
@@ -242,6 +285,40 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginInfoLink {
+  const _LoginInfoLink({required this.title, required this.route});
+
+  final String title;
+  final String route;
+}
+
+class _LoginInfoLinkText extends StatelessWidget {
+  const _LoginInfoLinkText({required this.item, required this.onTap});
+
+  final _LoginInfoLink item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text(
+          item.title,
+          maxLines: 1,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
