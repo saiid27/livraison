@@ -63,6 +63,19 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
     }
   }
 
+  Future<void> loadOrders() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await ApiClient.instance.get('/client/product-orders');
+      final orders = (response.data['orders'] as List)
+          .map((item) => MerchantOrderModel.fromJson(item))
+          .toList();
+      state = state.copyWith(orders: orders, isLoading: false);
+    } on DioException catch (error) {
+      state = state.copyWith(isLoading: false, error: _errorMessage(error));
+    }
+  }
+
   Future<MerchantOrderModel?> buyProduct({
     required String productId,
     required int quantity,
