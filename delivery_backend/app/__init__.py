@@ -140,6 +140,10 @@ def create_app():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS merchant_contact_phone VARCHAR(20)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS merchant_payment_phone VARCHAR(20)",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS payment_phone_from VARCHAR(20)",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS payment_screenshot VARCHAR(255)",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(120)",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS notes TEXT",
         ):
             db.session.execute(text(statement))
         db.session.commit()

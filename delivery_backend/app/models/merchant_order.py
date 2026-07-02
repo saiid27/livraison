@@ -14,6 +14,10 @@ class MerchantOrder(db.Model):
     unit_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     total_price = db.Column(db.Float, nullable=False)
+    payment_phone_from = db.Column(db.String(20), nullable=True)
+    payment_screenshot = db.Column(db.String(255), nullable=True)
+    buyer_name = db.Column(db.String(120), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -43,6 +47,10 @@ class MerchantOrder(db.Model):
             'unit_price': self.unit_price,
             'quantity': self.quantity,
             'total_price': self.total_price,
+            'payment_phone_from': self.payment_phone_from,
+            'payment_screenshot': self.payment_screenshot,
+            'buyer_name': self.buyer_name,
+            'notes': self.notes,
             'status': self.status,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

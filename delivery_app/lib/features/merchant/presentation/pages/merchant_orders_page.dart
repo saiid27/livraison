@@ -137,7 +137,7 @@ class _OrderCard extends ConsumerWidget {
               children: [
                 InfoPill(
                   icon: Icons.person_outline,
-                  label: order.clientName ?? '—',
+                  label: order.buyerName ?? order.clientName ?? '—',
                   color: AppColors.primary,
                 ),
                 InfoPill(
@@ -155,8 +155,54 @@ class _OrderCard extends ConsumerWidget {
                   label: '${order.totalPrice.toStringAsFixed(0)} MRU',
                   color: Colors.teal,
                 ),
+                if (order.paymentPhoneFrom != null)
+                  InfoPill(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: isAr
+                        ? 'دفع من: ${order.paymentPhoneFrom}'
+                        : 'Payé depuis: ${order.paymentPhoneFrom}',
+                    color: AppColors.warning,
+                  ),
               ],
             ),
+            if (order.notes != null && order.notes!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                '${isAr ? 'ملاحظات: ' : 'Remarques: '}${order.notes}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            if (order.screenshotUrl != null) ...[
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () => _viewScreenshot(context, order.screenshotUrl!),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        order.screenshotUrl!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAr ? 'عرض إثبات الدفع' : 'Voir la preuve de paiement',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (showActions) ...[
               const SizedBox(height: 12),
               Row(
@@ -186,6 +232,18 @@ class _OrderCard extends ConsumerWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  void _viewScreenshot(BuildContext context, String url) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: InteractiveViewer(
+          child: Image.network(url, fit: BoxFit.contain),
         ),
       ),
     );

@@ -55,19 +55,38 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
     }
   }
 
-  Future<String?> buyProduct(String productId, int quantity) async {
-    state = state.copyWith(isSubmitting: true);
+  Future<MerchantOrderModel?> buyProduct({
+    required String productId,
+    required int quantity,
+    required String buyerName,
+    required String paymentPhoneFrom,
+    required String screenshotPath,
+    String? notes,
+  }) async {
+    state = state.copyWith(isSubmitting: true, error: null);
     try {
-      await ApiClient.instance.post(
+      final data = FormData.fromMap({
+        'product_id': productId,
+        'quantity': quantity,
+        'buyer_name': buyerName,
+        'payment_phone_from': paymentPhoneFrom,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        'payment_screenshot': await MultipartFile.fromFile(screenshotPath),
+      });
+      final response = await ApiClient.instance.post(
         '/client/product-orders',
-        data: {'product_id': productId, 'quantity': quantity},
+        data: data,
       );
+      final order = MerchantOrderModel.fromJson(response.data['order']);
       await loadProducts();
       state = state.copyWith(isSubmitting: false);
-      return null;
+      return order;
     } on DioException catch (error) {
-      state = state.copyWith(isSubmitting: false);
-      return error.response?.data['message'] ?? 'Erreur';
+      state = state.copyWith(
+        isSubmitting: false,
+        error: error.response?.data['message'] ?? 'Erreur',
+      );
+      return null;
     }
   }
 }

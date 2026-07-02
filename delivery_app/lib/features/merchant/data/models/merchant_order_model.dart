@@ -17,6 +17,10 @@ class MerchantOrderModel {
     this.clientName,
     this.clientPhone,
     this.productImage,
+    this.paymentPhoneFrom,
+    this.paymentScreenshot,
+    this.buyerName,
+    this.notes,
   });
 
   final String id;
@@ -33,11 +37,21 @@ class MerchantOrderModel {
   final double totalPrice;
   final String status;
   final DateTime createdAt;
+  final String? paymentPhoneFrom;
+  final String? paymentScreenshot;
+  final String? buyerName;
+  final String? notes;
 
   String? get imageUrl {
     if (productImage == null || productImage!.isEmpty) return null;
     if (productImage!.startsWith('http')) return productImage;
     return '${AppConstants.baseUrl.replaceAll('/api', '')}$productImage';
+  }
+
+  String? get screenshotUrl {
+    if (paymentScreenshot == null || paymentScreenshot!.isEmpty) return null;
+    if (paymentScreenshot!.startsWith('http')) return paymentScreenshot;
+    return '${AppConstants.baseUrl.replaceAll('/api', '')}$paymentScreenshot';
   }
 
   factory MerchantOrderModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +72,10 @@ class MerchantOrderModel {
       totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0,
       status: json['status'] ?? 'pending',
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      paymentPhoneFrom: json['payment_phone_from'],
+      paymentScreenshot: json['payment_screenshot'],
+      buyerName: json['buyer_name'],
+      notes: json['notes'],
     );
   }
 }

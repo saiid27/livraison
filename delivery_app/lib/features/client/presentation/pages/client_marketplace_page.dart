@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../merchant/data/models/merchant_order_model.dart';
 import '../../../merchant/data/models/merchant_product_model.dart';
 import '../../../merchant/presentation/widgets/merchant_widgets.dart';
 import '../providers/marketplace_provider.dart';
@@ -148,44 +152,107 @@ class _ProductCard extends ConsumerWidget {
   }
 
   Future<void> _buy(BuildContext context, WidgetRef ref) async {
-    final quantityCtrl = TextEditingController(text: '1');
-    final quantity = await showDialog<int>(
+    final order = await showModalBottomSheet<MerchantOrderModel>(
       context: context,
+      isScrollControlled: true,
+      builder: (_) => _PurchaseForm(product: product, isAr: isAr),
+    );
+    if (!context.mounted || order == null) return;
+    await _showConfirmation(context, order);
+  }
+
+  Future<void> _showConfirmation(
+    BuildContext context,
+    MerchantOrderModel order,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(isAr ? 'شراء المنتج' : 'Acheter le produit'),
-        content: TextField(
-          controller: quantityCtrl,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: isAr ? 'الكمية' : 'Quantité'),
+        icon: const Icon(
+          Icons.check_circle_outline,
+          color: AppColors.success,
+          size: 48,
+        ),
+        title: Text(isAr ? 'تم إرسال الطلب' : 'Commande envoyée'),
+        content: Text(
+          isAr
+              ? 'طلبك قيد المراجعة الآن. سيتم إعلامك عند تأكيده من طرف التاجر.'
+              : 'Votre commande est en cours de vérification. Vous serez informé dès sa confirmation par le vendeur.',
+          textAlign: TextAlign.center,
         ),
         actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _contactOnWhatsApp(context, order);
+              },
+              icon: const Text('📱', style: TextStyle(fontSize: 16)),
+              label: Text(
+                isAr
+                    ? 'تواصل مع التاجر عبر واتساب'
+                    : 'Contacter le vendeur sur WhatsApp',
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(isAr ? 'إلغاء' : 'Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.of(ctx).pop(int.tryParse(quantityCtrl.text) ?? 0),
-            child: Text(isAr ? 'تأكيد' : 'Confirmer'),
+            child: Text(isAr ? 'إغلاق' : 'Fermer'),
           ),
         ],
       ),
     );
-    quantityCtrl.dispose();
-    if (quantity == null || quantity <= 0) return;
+  }
 
-    final error = await ref
-        .read(marketplaceProvider.notifier)
-        .buyProduct(product.id, quantity);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: error == null ? null : AppColors.error,
-        content: Text(
-          error ?? (isAr ? 'تم إرسال الطلب للتاجر' : 'Commande envoyée'),
+  Future<void> _contactOnWhatsApp(
+    BuildContext context,
+    MerchantOrderModel order,
+  ) async {
+    final vendorPhone = (order.merchantContactPhone?.trim().isNotEmpty == true)
+        ? order.merchantContactPhone!.trim()
+        : order.merchantPaymentPhone?.trim();
+    if (vendorPhone == null || vendorPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isAr
+                ? 'رقم التاجر غير متوفر'
+                : "Le numéro du vendeur n'est pas disponible",
+          ),
         ),
-      ),
+      );
+      return;
+    }
+
+    final digits = vendorPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final message = isAr
+        ? 'مرحباً، أنا ${order.buyerName ?? ''}، أرسلت طلب رقم #${order.id} '
+              'وقمت بالدفع من الرقم ${order.paymentPhoneFrom ?? ''}. أرجو التأكيد.'
+        : 'Bonjour, je suis ${order.buyerName ?? ''}, j\'ai passé la commande '
+              '#${order.id} et payé depuis le numéro ${order.paymentPhoneFrom ?? ''}. '
+              'Merci de confirmer.';
+    final uri = Uri.parse(
+      'https://wa.me/$digits?text=${Uri.encodeComponent(message)}',
     );
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isAr
+                ? 'تعذر فتح واتساب'
+                : "Impossible d'ouvrir WhatsApp",
+          ),
+        ),
+      );
+    }
   }
 
   String get _paymentInfo {
@@ -203,5 +270,212 @@ class _ProductCard extends ConsumerWidget {
     return isAr
         ? 'رقم الدفع: $payment | التواصل: $contact'
         : 'Paiement: $payment | Contact: $contact';
+  }
+}
+
+class _PurchaseForm extends ConsumerStatefulWidget {
+  const _PurchaseForm({required this.product, required this.isAr});
+
+  final MerchantProductModel product;
+  final bool isAr;
+
+  @override
+  ConsumerState<_PurchaseForm> createState() => _PurchaseFormState();
+}
+
+class _PurchaseFormState extends ConsumerState<_PurchaseForm> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _quantityCtrl;
+  late final TextEditingController _nameCtrl;
+  final _phoneCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+  String? _screenshotPath;
+
+  bool get isAr => widget.isAr;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityCtrl = TextEditingController(text: '1');
+    final user = ref.read(authProvider).user;
+    _nameCtrl = TextEditingController(text: user?.name ?? '');
+  }
+
+  @override
+  void dispose() {
+    _quantityCtrl.dispose();
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (image != null) setState(() => _screenshotPath = image.path);
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_screenshotPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isAr
+                ? 'يرجى إرفاق صورة إثبات الدفع'
+                : 'Veuillez joindre la preuve de paiement',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final quantity = int.tryParse(_quantityCtrl.text.trim()) ?? 0;
+    final order = await ref
+        .read(marketplaceProvider.notifier)
+        .buyProduct(
+          productId: widget.product.id,
+          quantity: quantity,
+          buyerName: _nameCtrl.text.trim(),
+          paymentPhoneFrom: _phoneCtrl.text.trim(),
+          screenshotPath: _screenshotPath!,
+          notes: _notesCtrl.text.trim(),
+        );
+
+    if (!mounted) return;
+    if (order == null) {
+      final error = ref.read(marketplaceProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(error ?? (isAr ? 'خطأ' : 'Erreur')),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pop(order);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final submitting = ref.watch(marketplaceProvider).isSubmitting;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 18,
+        right: 18,
+        top: 18,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 18,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                isAr ? 'تأكيد الشراء' : 'Confirmer l\'achat',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.product.name,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _quantityCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: isAr ? 'الكمية' : 'Quantité',
+                  prefixIcon: const Icon(Icons.numbers_outlined),
+                ),
+                validator: (value) {
+                  final qty = int.tryParse(value?.trim() ?? '');
+                  if (qty == null || qty <= 0) {
+                    return isAr ? 'كمية غير صحيحة' : 'Quantité invalide';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: InputDecoration(
+                  labelText: isAr ? 'اسم العميل' : 'Nom du client',
+                  prefixIcon: const Icon(Icons.person_outline),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? (isAr ? 'الاسم مطلوب' : 'Nom requis')
+                    : null,
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: isAr
+                      ? 'رقم الهاتف المستخدم للدفع'
+                      : 'Téléphone utilisé pour le paiement',
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                ),
+                validator: (value) {
+                  final phone = value?.trim() ?? '';
+                  if (phone.isEmpty) {
+                    return isAr ? 'الرقم مطلوب' : 'Numéro requis';
+                  }
+                  if (!RegExp(r'^[0-9+ ]{8,15}$').hasMatch(phone)) {
+                    return isAr ? 'رقم غير صحيح' : 'Numéro invalide';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+                label: Text(
+                  _screenshotPath == null
+                      ? (isAr
+                            ? 'إرفاق صورة إثبات الدفع'
+                            : 'Joindre la preuve de paiement')
+                      : (isAr ? 'تم اختيار الصورة' : 'Image sélectionnée'),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _notesCtrl,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: isAr
+                      ? 'ملاحظات إضافية (اختياري)'
+                      : 'Remarques supplémentaires (optionnel)',
+                  prefixIcon: const Icon(Icons.notes_outlined),
+                  alignLabelWithHint: true,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: submitting ? null : _submit,
+                icon: submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.send_outlined),
+                label: Text(isAr ? 'إرسال الطلب' : 'Envoyer la commande'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

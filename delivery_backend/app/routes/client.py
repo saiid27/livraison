@@ -1,5 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from pathlib import Path
+from uuid import uuid4
+from werkzeug.utils import secure_filename
+import os
 from app import db
 from app.models.order import Order
 from app.models.user import User
@@ -10,6 +14,19 @@ from app.delivery_locations import DELIVERY_LOCATIONS, trial_delivery_price
 from app.broadcast import compute_broadcast_state
 
 client_bp = Blueprint('client', __name__)
+_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
+
+
+def _save_payment_screenshot(upload):
+    original = secure_filename(upload.filename or '')
+    ext = Path(original).suffix.lower()
+    if ext not in _ALLOWED_EXTS:
+        raise ValueError('Format image non pris en charge')
+    target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'merchant_payments')
+    os.makedirs(target_dir, exist_ok=True)
+    filename = f'{uuid4().hex}{ext}'
+    upload.save(os.path.join(target_dir, filename))
+    return f'/uploads/merchant_payments/{filename}'
 
 
 @client_bp.route('/orders', methods=['GET'])
@@ -119,17 +136,22 @@ def list_product_orders():
 @role_required('client')
 def create_product_order():
     user_id = get_jwt_identity()
-    data = request.get_json(silent=True) or {}
+    data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     product_id = data.get('product_id')
     quantity_raw = data.get('quantity', 1)
+    payment_phone_from = str(data.get('payment_phone_from', '')).strip()
+    buyer_name = str(data.get('buyer_name', '')).strip()
+    notes = str(data.get('notes', '')).strip() or None
 
     try:
         quantity = int(quantity_raw)
     except (TypeError, ValueError):
         quantity = 0
 
-    if not product_id or quantity <= 0:
-        return jsonify({'message': 'Produit et quantité requis'}), 400
+    if not product_id or quantity <= 0 or not payment_phone_from or not buyer_name:
+        return jsonify({'message': 'Produit, quantité, nom et numéro de paiement requis'}), 400
+    if 'payment_screenshot' not in request.files or not request.files['payment_screenshot'].filename:
+        return jsonify({'message': 'صورة الدفع مطلوبة'}), 400
 
     product = MerchantProduct.query.filter_by(
         id=product_id,
@@ -139,6 +161,11 @@ def create_product_order():
         return jsonify({'message': 'Produit introuvable'}), 404
     if product.quantity < quantity:
         return jsonify({'message': 'Quantité insuffisante'}), 400
+
+    try:
+        payment_screenshot = _save_payment_screenshot(request.files['payment_screenshot'])
+    except ValueError as error:
+        return jsonify({'message': str(error)}), 400
 
     product.quantity -= quantity
     order = MerchantOrder(
@@ -150,6 +177,10 @@ def create_product_order():
         unit_price=product.price,
         quantity=quantity,
         total_price=product.price * quantity,
+        payment_phone_from=payment_phone_from,
+        payment_screenshot=payment_screenshot,
+        buyer_name=buyer_name,
+        notes=notes,
     )
     db.session.add(order)
     db.session.commit()
