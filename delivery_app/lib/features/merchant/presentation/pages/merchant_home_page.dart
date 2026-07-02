@@ -45,12 +45,6 @@ class MerchantHomePage extends ConsumerWidget {
         Colors.teal,
         () => context.go('/merchant/order-history'),
       ),
-      _MerchantItem(
-        isAr ? 'ملف التاجر' : 'Profil commerçant',
-        Icons.store_mall_directory_outlined,
-        Colors.indigo,
-        () => context.go('/merchant/profile'),
-      ),
     ];
 
     return Scaffold(
@@ -72,10 +66,44 @@ class MerchantHomePage extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.storefront, color: Colors.white, size: 30),
+                InkWell(
+                  onTap: () => context.go('/merchant/profile'),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.white24,
+                        child: Icon(
+                          Icons.storefront,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            size: 13,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
