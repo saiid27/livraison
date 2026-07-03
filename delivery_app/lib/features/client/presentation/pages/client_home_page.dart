@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
@@ -87,8 +89,24 @@ class ClientHomePage extends ConsumerWidget {
 
 class _CallCenterButton extends StatelessWidget {
   final bool isAr;
+  static final Uri _whatsAppUri = Uri.parse(
+    'whatsapp://send?phone=${AppConstants.supportWhatsAppPhone}',
+  );
+  static final Uri _whatsAppWebUri = Uri.parse(
+    'https://wa.me/${AppConstants.supportWhatsAppPhone}',
+  );
 
   const _CallCenterButton({required this.isAr});
+
+  Future<void> _openWhatsApp() async {
+    final opened = await launchUrl(
+      _whatsAppUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (opened) return;
+
+    await launchUrl(_whatsAppWebUri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +114,7 @@ class _CallCenterButton extends StatelessWidget {
       color: AppColors.primary,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        onTap: () => context.go('/client/support-call'),
+        onTap: _openWhatsApp,
         borderRadius: BorderRadius.circular(20),
         child: SizedBox.square(
           dimension: 126,
@@ -112,7 +130,7 @@ class _CallCenterButton extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  isAr ? 'اتصال صوتي بالمركز' : 'Appel audio centre',
+                  isAr ? 'اتصال بالمركز' : 'Contacter le centre',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,

@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from flask_sock import Sock
 from dotenv import load_dotenv
 from sqlalchemy import text
 import os
@@ -15,7 +14,6 @@ load_dotenv()
 db = SQLAlchemy()
 jwt = JWTManager()
 bcrypt = Bcrypt()
-sock = Sock()
 
 
 def create_app():
@@ -40,7 +38,6 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
     bcrypt.init_app(app)
-    sock.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     from app.routes.auth import auth_bp
@@ -48,14 +45,12 @@ def create_app():
     from app.routes.livreur import livreur_bp
     from app.routes.admin import admin_bp
     from app.routes.merchant import merchant_bp
-    from app.routes.support_calls import register_support_call_routes
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(client_bp, url_prefix='/api/client')
     app.register_blueprint(livreur_bp, url_prefix='/api/livreur')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(merchant_bp, url_prefix='/api/merchant')
-    register_support_call_routes(sock)
 
     @app.route('/api/health')
     def health():

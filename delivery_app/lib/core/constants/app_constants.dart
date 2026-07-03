@@ -8,25 +8,8 @@ class AppConstants {
   static const String userRoleKey = 'user_role';
   static const String userIdKey = 'user_id';
   static const String approvalStatusKey = 'approval_status';
-  static const String supportPhone = '22000001';
-
-  static List<String> get supportCallWsUrls {
-    final root = baseUrl.replaceFirst(RegExp(r'/api$'), '');
-    final apiRoot = baseUrl;
-    if (root.startsWith('https://')) {
-      return [
-        '${root.replaceFirst('https://', 'wss://')}/ws/support-calls',
-        '${apiRoot.replaceFirst('https://', 'wss://')}/ws/support-calls',
-      ];
-    }
-    if (root.startsWith('http://')) {
-      return [
-        '${root.replaceFirst('http://', 'ws://')}/ws/support-calls',
-        '${apiRoot.replaceFirst('http://', 'ws://')}/ws/support-calls',
-      ];
-    }
-    return ['$root/ws/support-calls', '$apiRoot/ws/support-calls'];
-  }
+  static const String supportPhone = '43760128';
+  static const String supportWhatsAppPhone = '22243760128';
 
   static const String roleClient = 'client';
   static const String roleLivreur = 'livreur';
