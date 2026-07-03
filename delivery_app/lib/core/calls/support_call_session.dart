@@ -49,26 +49,49 @@ class SupportCallSession {
   RTCPeerConnection? _peer;
   MediaStream? _localStream;
   StreamSubscription? _socketSub;
+  Future<void>? _connectFuture;
   String? _callId;
 
   bool get isInCall => _callId != null;
 
   Future<void> connect() async {
+    if (_connectFuture != null) return _connectFuture;
+    _connectFuture = _connect();
+    return _connectFuture;
+  }
+
+  Future<void> _connect() async {
     final token = await _storage.read(key: AppConstants.tokenKey);
     if (token == null) {
       onStatus?.call('غير مسجل الدخول');
       return;
     }
 
-    final uri = Uri.parse(
-      AppConstants.supportCallWsUrl,
-    ).replace(queryParameters: {'token': token});
-    _channel = WebSocketChannel.connect(uri);
-    _socketSub = _channel!.stream.listen(
-      _handleMessage,
-      onError: (_) => onStatus?.call('تعذر الاتصال بالمركز'),
-      onDone: () => onStatus?.call('انقطع الاتصال بالمركز'),
-    );
+    Object? lastError;
+    for (final url in AppConstants.supportCallWsUrls) {
+      try {
+        final uri = Uri.parse(url).replace(queryParameters: {'token': token});
+        final channel = WebSocketChannel.connect(uri);
+        await channel.ready.timeout(const Duration(seconds: 14));
+        _channel = channel;
+        _socketSub = _channel!.stream.listen(
+          _handleMessage,
+          onError: (error) => onStatus?.call('تعذر الاتصال بالمركز: $error'),
+          onDone: () => onStatus?.call('انقطع الاتصال بالمركز'),
+        );
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (_channel == null) {
+      _connectFuture = null;
+      onStatus?.call('تعذر فتح اتصال المركز: ${lastError ?? ''}');
+      return;
+    }
+
     if (role == SupportCallRole.admin) {
       _send({'type': 'presence'});
     }
@@ -76,12 +99,14 @@ class SupportCallSession {
 
   Future<void> startClientCall() async {
     await _ensureConnected();
+    if (_channel == null) return;
     onStatus?.call('جاري الاتصال بالمركز...');
     _send({'type': 'call_start'});
   }
 
   Future<void> acceptCall(String callId) async {
     await _ensureConnected();
+    if (_channel == null) return;
     _callId = callId;
     _send({'type': 'accept_call', 'call_id': callId});
     onStatus?.call('تم قبول المكالمة، بانتظار الصوت...');

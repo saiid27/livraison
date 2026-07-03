@@ -37,7 +37,7 @@ def _user_from_token(token):
     try:
         decoded = decode_token(token)
         user_id = decoded.get('sub')
-        return User.query.get(user_id)
+        return User.query.get(int(user_id))
     except Exception:
         return None
 
@@ -168,6 +168,7 @@ def _handle_admin_message(ws, user, data):
 
 
 def register_support_call_routes(sock):
+    @sock.route('/api/ws/support-calls')
     @sock.route('/ws/support-calls')
     def support_calls(ws):
         token = request.args.get('token')

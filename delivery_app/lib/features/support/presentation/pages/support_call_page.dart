@@ -37,7 +37,13 @@ class _SupportCallPageState extends ConsumerState<SupportCallPage> {
   }
 
   void _setStatus(String value) {
-    if (mounted) setState(() => _status = value);
+    if (!mounted) return;
+    setState(() {
+      _status = value;
+      if (value.startsWith('تعذر') || value.startsWith('غير مسجل')) {
+        _calling = false;
+      }
+    });
   }
 
   @override
