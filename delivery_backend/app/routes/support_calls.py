@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timezone
 from threading import RLock
 from uuid import uuid4
@@ -8,6 +9,8 @@ from flask_jwt_extended import decode_token
 
 from app.models.user import User
 
+
+logger = logging.getLogger('support_calls')
 
 _lock = RLock()
 _admins = {}
@@ -63,6 +66,8 @@ def _cleanup_call(call_id, reason='ended'):
     if not call:
         return
 
+    logger.info('call_cleanup call_id=%s reason=%s', call_id, reason)
+
     payload = {'type': 'call_ended', 'call_id': call_id, 'reason': reason}
     if call.get('client_ws'):
         _send(call['client_ws'], payload)
@@ -88,7 +93,15 @@ def _handle_client_message(ws, user, data):
             _calls[call_id] = call
             admins = list(_admins.values())
 
+        logger.info(
+            'call_start call_id=%s client_id=%s online_admins=%d',
+            call_id,
+            user.id,
+            len(admins),
+        )
+
         if not admins:
+            logger.warning('call_start no admins online call_id=%s', call_id)
             _send(ws, {'type': 'no_admins', 'message': 'لا يوجد مشرف متصل الآن'})
             _cleanup_call(call_id, reason='no_admins')
             return
@@ -114,7 +127,9 @@ def _handle_admin_message(ws, user, data):
     message_type = data.get('type')
 
     if message_type == 'presence':
-        _send(ws, {'type': 'presence_ok', 'online_admins': _admin_count()})
+        count = _admin_count()
+        logger.info('presence admin_id=%s online_admins=%d', user.id, count)
+        _send(ws, {'type': 'presence_ok', 'online_admins': count})
         with _lock:
             ringing_calls = [
                 _call_public_payload(call)
@@ -139,8 +154,15 @@ def _handle_admin_message(ws, user, data):
                 admins = list(_admins.values())
 
         if not call:
+            logger.warning(
+                'accept_call unavailable call_id=%s admin_id=%s',
+                call_id,
+                user.id,
+            )
             _send(ws, {'type': 'call_unavailable', 'call_id': call_id})
             return
+
+        logger.info('accept_call call_id=%s admin_id=%s', call_id, user.id)
 
         accepted_payload = {
             'type': 'call_accepted',
@@ -174,6 +196,7 @@ def register_support_call_routes(sock):
         token = request.args.get('token')
         user = _user_from_token(token)
         if not user or user.role not in {'client', 'admin'}:
+            logger.warning('unauthorized ws connection attempt')
             _send(ws, {'type': 'unauthorized'})
             ws.close()
             return
@@ -183,6 +206,13 @@ def register_support_call_routes(sock):
                 _admins[user.id] = {'ws': ws, 'user': user}
             else:
                 _clients[user.id] = {'ws': ws, 'user': user}
+
+        logger.info(
+            'ws_connected role=%s user_id=%s online_admins=%d',
+            user.role,
+            user.id,
+            _admin_count(),
+        )
 
         _send(ws, {'type': 'connected', 'role': user.role})
         if user.role == 'admin':
@@ -209,5 +239,14 @@ def register_support_call_routes(sock):
                     for call_id, call in _calls.items()
                     if call.get('client_ws') is ws or call.get('admin_ws') is ws
                 ]
+
+            logger.info(
+                'ws_disconnected role=%s user_id=%s online_admins=%d active_calls=%d',
+                user.role,
+                user.id,
+                _admin_count(),
+                len(call_ids),
+            )
+
             for call_id in call_ids:
                 _cleanup_call(call_id, reason='disconnected')

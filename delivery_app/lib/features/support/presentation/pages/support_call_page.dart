@@ -36,11 +36,19 @@ class _SupportCallPageState extends ConsumerState<SupportCallPage> {
     await _session?.startClientCall();
   }
 
+  static const _failureStatusPrefixes = [
+    'تعذر', // تعذر الاتصال / تعذر فتح اتصال المركز
+    'غير مسجل', // غير مسجل الدخول
+    'غير مصرح', // غير مصرح لك بالاتصال
+    'انقطع', // انقطع الاتصال بالمركز
+    'لا يوجد مشرف', // لا يوجد مشرف متصل الآن
+  ];
+
   void _setStatus(String value) {
     if (!mounted) return;
     setState(() {
       _status = value;
-      if (value.startsWith('تعذر') || value.startsWith('غير مسجل')) {
+      if (_failureStatusPrefixes.any(value.startsWith)) {
         _calling = false;
       }
     });

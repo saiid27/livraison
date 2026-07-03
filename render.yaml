@@ -6,7 +6,14 @@ services:
     region: frankfurt
     rootDir: delivery_backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --threads 100 run:app
+    # NOTE: support call presence/state (_admins, _clients, _calls in
+    # app/routes/support_calls.py) lives in in-process memory. Running more
+    # than one Gunicorn worker would split traffic across processes with
+    # disjoint state, so an admin connected to worker A would never see a
+    # call_start handled by worker B ("appel du client n'arrive pas").
+    # Keep --workers 1 (threads still give us concurrency for the
+    # websocket connections) unless that state is moved to Redis/pubsub.
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 100 run:app
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:

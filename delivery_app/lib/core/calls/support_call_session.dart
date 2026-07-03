@@ -51,16 +51,28 @@ class SupportCallSession {
   StreamSubscription? _socketSub;
   Future<void>? _connectFuture;
   String? _callId;
+  bool _disposed = false;
 
   bool get isInCall => _callId != null;
+  bool get isConnected => _channel != null;
 
   Future<void> connect() async {
     if (_connectFuture != null) return _connectFuture;
-    _connectFuture = _connect();
-    return _connectFuture;
+    final future = _connect();
+    _connectFuture = future;
+    try {
+      await future;
+    } finally {
+      // Allow future reconnect attempts once this attempt settles, whether
+      // it succeeded (channel now open) or failed (channel still null).
+      if (identical(_connectFuture, future)) {
+        _connectFuture = null;
+      }
+    }
   }
 
   Future<void> _connect() async {
+    if (_disposed) return;
     final token = await _storage.read(key: AppConstants.tokenKey);
     if (token == null) {
       onStatus?.call('غير مسجل الدخول');
@@ -68,17 +80,13 @@ class SupportCallSession {
     }
 
     Object? lastError;
+    WebSocketChannel? openedChannel;
     for (final url in AppConstants.supportCallWsUrls) {
       try {
         final uri = Uri.parse(url).replace(queryParameters: {'token': token});
         final channel = WebSocketChannel.connect(uri);
         await channel.ready.timeout(const Duration(seconds: 14));
-        _channel = channel;
-        _socketSub = _channel!.stream.listen(
-          _handleMessage,
-          onError: (error) => onStatus?.call('تعذر الاتصال بالمركز: $error'),
-          onDone: () => onStatus?.call('انقطع الاتصال بالمركز'),
-        );
+        openedChannel = channel;
         lastError = null;
         break;
       } catch (error) {
@@ -86,27 +94,73 @@ class SupportCallSession {
       }
     }
 
-    if (_channel == null) {
-      _connectFuture = null;
+    if (_disposed) {
+      await openedChannel?.sink.close();
+      return;
+    }
+
+    if (openedChannel == null) {
       onStatus?.call('تعذر فتح اتصال المركز: ${lastError ?? ''}');
       return;
     }
+
+    _channel = openedChannel;
+    _socketSub = openedChannel.stream.listen(
+      _handleMessage,
+      onError: (error) => _handleSocketClosed('تعذر الاتصال بالمركز: $error'),
+      onDone: () => _handleSocketClosed('انقطع الاتصال بالمركز'),
+    );
 
     if (role == SupportCallRole.admin) {
       _send({'type': 'presence'});
     }
   }
 
+  /// Called whenever the underlying socket stream ends, errors out, or a
+  /// send fails against a dead socket. Fully resets connection state so a
+  /// subsequent [_ensureConnected] call creates a brand new WebSocket
+  /// instead of trying to reuse the dead one.
+  void _handleSocketClosed(String status) {
+    if (_disposed) return;
+    unawaited(_resetAfterDisconnect(status));
+  }
+
+  Future<void> _resetAfterDisconnect(String status) async {
+    // Guards against onError immediately followed by onDone (or vice
+    // versa) triggering the cleanup/callback logic twice.
+    final alreadyReset = _channel == null && _socketSub == null;
+
+    await _socketSub?.cancel();
+    _socketSub = null;
+    _channel = null;
+    _connectFuture = null;
+
+    final hadCall = _callId != null;
+    await _closePeer();
+    _callId = null;
+
+    if (alreadyReset) return;
+
+    onStatus?.call(status);
+    onCallEnded?.call(hadCall ? 'connection_lost' : 'connect_failed');
+  }
+
   Future<void> startClientCall() async {
     await _ensureConnected();
-    if (_channel == null) return;
+    if (_channel == null) {
+      onCallEnded?.call('connect_failed');
+      return;
+    }
     onStatus?.call('جاري الاتصال بالمركز...');
     _send({'type': 'call_start'});
   }
 
   Future<void> acceptCall(String callId) async {
     await _ensureConnected();
-    if (_channel == null) return;
+    if (_channel == null) {
+      onCallEnded?.call('connect_failed');
+      return;
+    }
     _callId = callId;
     _send({'type': 'accept_call', 'call_id': callId});
     onStatus?.call('تم قبول المكالمة، بانتظار الصوت...');
@@ -123,11 +177,23 @@ class SupportCallSession {
   }
 
   Future<void> dispose() async {
-    await endCall();
+    _disposed = true;
+    final callId = _callId;
+    if (callId != null) {
+      _send({'type': 'end_call', 'call_id': callId});
+    }
+    await _closePeer();
+    _callId = null;
     await _socketSub?.cancel();
+    _socketSub = null;
     await _channel?.sink.close();
+    _channel = null;
+    _connectFuture = null;
   }
 
+  /// Ensures there is a live WebSocket to send on. If the previous socket
+  /// was closed (or never opened), [_channel] has already been nulled out
+  /// by [_resetAfterDisconnect], so this creates a fresh connection.
   Future<void> _ensureConnected() async {
     if (_channel == null) {
       await connect();
@@ -154,7 +220,9 @@ class SupportCallSession {
         onStatus?.call('يرن عند المشرفين المتصلين...');
         break;
       case 'no_admins':
+        _callId = null;
         onStatus?.call(data['message']?.toString() ?? 'لا يوجد مشرف متصل');
+        onCallEnded?.call('no_admins');
         break;
       case 'call_accepted':
         _callId = data['call_id']?.toString();
@@ -204,7 +272,9 @@ class SupportCallSession {
         onStatus?.call('مشرف آخر استلم المكالمة');
         break;
       case 'call_unavailable':
+        _callId = null;
         onStatus?.call('هذه المكالمة لم تعد متاحة');
+        onCallEnded?.call('call_unavailable');
         break;
       case 'call_ended':
         final reason = data['reason']?.toString() ?? 'ended';
@@ -214,7 +284,9 @@ class SupportCallSession {
         onCallEnded?.call(reason);
         break;
       case 'unauthorized':
+        _callId = null;
         onStatus?.call('غير مصرح لك بالاتصال');
+        onCallEnded?.call('unauthorized');
         break;
     }
   }
@@ -273,7 +345,16 @@ class SupportCallSession {
   }
 
   void _send(Map<String, dynamic> payload) {
-    _channel?.sink.add(jsonEncode(payload));
+    final channel = _channel;
+    if (channel == null) {
+      onStatus?.call('تعذر إرسال الطلب: الاتصال غير متاح');
+      return;
+    }
+    try {
+      channel.sink.add(jsonEncode(payload));
+    } catch (_) {
+      _handleSocketClosed('انقطع الاتصال بالمركز');
+    }
   }
 
   Map<String, dynamic> _parse(dynamic raw) {
