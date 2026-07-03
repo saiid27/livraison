@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +28,8 @@ import '../../features/admin/presentation/pages/admin_approvals_page.dart';
 import '../../features/admin/presentation/pages/admin_recharge_requests_page.dart';
 import '../../features/admin/presentation/pages/admin_payment_methods_page.dart';
 import '../../features/admin/presentation/pages/admin_account_deletion_requests_page.dart';
+import '../../features/support/presentation/pages/admin_support_calls_page.dart';
+import '../../features/support/presentation/pages/support_call_page.dart';
 import '../../features/livreur/presentation/pages/livreur_recharge_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../../features/merchant/presentation/pages/merchant_add_product_page.dart';
@@ -168,6 +172,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/client/marketplace',
             builder: (_, __) => const ClientMarketplacePage(),
           ),
+          GoRoute(
+            path: '/client/support-call',
+            builder: (_, __) => const SupportCallPage(),
+          ),
         ],
       ),
 
@@ -263,6 +271,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/account-deletion-requests',
             builder: (_, __) => const AdminAccountDeletionRequestsPage(),
+          ),
+          GoRoute(
+            path: '/admin/support-calls',
+            builder: (_, __) => const AdminSupportCallsPage(),
           ),
         ],
       ),

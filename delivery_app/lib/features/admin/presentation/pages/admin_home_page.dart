@@ -14,6 +14,12 @@ class AdminHomePage extends ConsumerWidget {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final items = [
       _AdminItem(
+        isAr ? 'مكالمات المركز' : 'Appels du centre',
+        Icons.headset_mic_outlined,
+        AppColors.primary,
+        () => context.go('/admin/support-calls'),
+      ),
+      _AdminItem(
         isAr ? 'طلبات إنشاء الحساب' : 'Demandes de comptes',
         Icons.how_to_reg_outlined,
         AppColors.warning,

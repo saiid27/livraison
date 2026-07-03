@@ -51,6 +51,8 @@
 	<string>L'application a besoin de votre position pour la livraison</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>L'application a besoin de votre position pour le suivi de livraison</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>L'application utilise le microphone pour les appels audio avec le centre.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

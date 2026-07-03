@@ -10,6 +10,17 @@ class AppConstants {
   static const String approvalStatusKey = 'approval_status';
   static const String supportPhone = '22000001';
 
+  static String get supportCallWsUrl {
+    final root = baseUrl.replaceFirst(RegExp(r'/api$'), '');
+    if (root.startsWith('https://')) {
+      return '${root.replaceFirst('https://', 'wss://')}/ws/support-calls';
+    }
+    if (root.startsWith('http://')) {
+      return '${root.replaceFirst('http://', 'ws://')}/ws/support-calls';
+    }
+    return '$root/ws/support-calls';
+  }
+
   static const String roleClient = 'client';
   static const String roleLivreur = 'livreur';
   static const String roleCarCaptain = 'car_captain';

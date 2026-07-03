@@ -6,7 +6,7 @@ services:
     region: frankfurt
     rootDir: delivery_backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT run:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --threads 100 run:app
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:
