@@ -40,6 +40,17 @@ class _MerchantAddProductPageState
 
   Future<void> _submit(bool isAr) async {
     if (!_formKey.currentState!.validate()) return;
+    if (_imagePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: Text(
+            isAr ? 'يرجى اختيار صورة المنتج' : 'Veuillez choisir une image',
+          ),
+        ),
+      );
+      return;
+    }
     final error = await ref
         .read(merchantProvider.notifier)
         .saveProduct(

@@ -141,12 +141,13 @@ def create_product():
     if not name or price is None or quantity is None:
         return jsonify({'message': 'Nom, prix et quantité sont requis'}), 400
 
-    image_url = None
-    if 'image' in request.files and request.files['image'].filename:
-        try:
-            image_url = _save_product_image(request.files['image'])
-        except ValueError as error:
-            return jsonify({'message': str(error)}), 400
+    if 'image' not in request.files or not request.files['image'].filename:
+        return jsonify({'message': 'صورة المنتج إلزامية'}), 400
+
+    try:
+        image_url = _save_product_image(request.files['image'])
+    except ValueError as error:
+        return jsonify({'message': str(error)}), 400
 
     product = MerchantProduct(
         merchant_id=merchant_id,
