@@ -24,6 +24,8 @@ class LivreurRechargePage extends ConsumerStatefulWidget {
 }
 
 class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
+  static const double _minimumRechargeAmount = 50;
+
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -237,6 +239,11 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                     return isAr
                         ? 'أدخل مبلغاً صحيحاً'
                         : 'Entrez un montant valide';
+                  }
+                  if (val < _minimumRechargeAmount) {
+                    return isAr
+                        ? 'أدنى حد للشحن 50 أوقية'
+                        : 'Recharge minimum 50 MRU';
                   }
                   return null;
                 },

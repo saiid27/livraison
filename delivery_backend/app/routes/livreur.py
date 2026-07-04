@@ -172,6 +172,8 @@ def submit_recharge_request():
             raise ValueError
     except ValueError:
         return jsonify({'message': 'Montant invalide'}), 400
+    if amount < 50:
+        return jsonify({'message': 'أدنى حد للشحن 50 أوقية'}), 400
 
     method = PaymentMethod.query.filter_by(id=int(payment_method_id), is_active=True).first()
     if not method:
