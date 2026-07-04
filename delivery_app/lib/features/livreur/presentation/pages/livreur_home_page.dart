@@ -43,6 +43,12 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   bool _isPolling = false;
   bool _dialogOpen = false;
 
+  String? _imageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    return '${AppConstants.baseUrl.replaceAll('/api', '')}$path';
+  }
+
   static const _nouakchott = LatLng(18.0735, -15.9582);
 
   @override
@@ -226,7 +232,10 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
       key: _scaffoldKey,
       drawer: _CaptainDrawer(
         isArabic: isAr,
-        roleLabel: isAr ? widget.captainTitleAr : widget.captainTitleFr,
+        subtitle:
+            user?.phone ??
+            (isAr ? widget.captainTitleAr : widget.captainTitleFr),
+        avatarUrl: _imageUrl(user?.avatar),
         userName: user?.name ?? (isAr ? widget.captainTitleAr : 'Capitaine'),
         onProfile: () {
           Navigator.of(context).pop();
@@ -584,7 +593,8 @@ class _CaptainMapMarker extends StatelessWidget {
 class _CaptainDrawer extends StatelessWidget {
   final bool isArabic;
   final String userName;
-  final String roleLabel;
+  final String subtitle;
+  final String? avatarUrl;
   final VoidCallback onProfile;
   final VoidCallback onWallet;
   final VoidCallback onHistory;
@@ -593,7 +603,8 @@ class _CaptainDrawer extends StatelessWidget {
   const _CaptainDrawer({
     required this.isArabic,
     required this.userName,
-    required this.roleLabel,
+    required this.subtitle,
+    required this.avatarUrl,
     required this.onProfile,
     required this.onWallet,
     required this.onHistory,
@@ -641,15 +652,7 @@ class _CaptainDrawer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.white24,
-                    child: Icon(
-                      Icons.delivery_dining_rounded,
-                      color: Colors.white,
-                      size: 34,
-                    ),
-                  ),
+                  _CaptainAvatar(avatarUrl: avatarUrl),
                   const SizedBox(height: 12),
                   Text(
                     userName,
@@ -659,10 +662,7 @@ class _CaptainDrawer extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Text(
-                    roleLabel,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
+                  Text(subtitle, style: const TextStyle(color: Colors.white70)),
                 ],
               ),
             ),
@@ -689,6 +689,42 @@ class _CaptainDrawer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CaptainAvatar extends StatelessWidget {
+  final String? avatarUrl;
+
+  const _CaptainAvatar({required this.avatarUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (avatarUrl != null) {
+      return ClipOval(
+        child: Image.network(
+          avatarUrl!,
+          width: 64,
+          height: 64,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const _CaptainAvatarFallback(),
+        ),
+      );
+    }
+    return const _CaptainAvatarFallback();
+  }
+}
+
+class _CaptainAvatarFallback extends StatelessWidget {
+  const _CaptainAvatarFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const CircleAvatar(
+      radius: 32,
+      backgroundColor: Colors.white24,
+      child: Icon(Icons.delivery_dining_rounded, color: Colors.white, size: 34),
     );
   }
 }
