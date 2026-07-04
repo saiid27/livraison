@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
 import '../../data/models/payment_method_model.dart';
 import '../../data/models/recharge_request_model.dart';
+import '../../data/models/wallet_transaction_model.dart';
 
 class WalletState {
   final List<RechargeRequestModel> requests;
+  final List<WalletTransactionModel> transactions;
   final List<PaymentMethodModel> paymentMethods;
   final bool isLoading;
   final bool isSubmitting;
@@ -13,6 +15,7 @@ class WalletState {
 
   const WalletState({
     this.requests = const [],
+    this.transactions = const [],
     this.paymentMethods = const [],
     this.isLoading = false,
     this.isSubmitting = false,
@@ -21,6 +24,7 @@ class WalletState {
 
   WalletState copyWith({
     List<RechargeRequestModel>? requests,
+    List<WalletTransactionModel>? transactions,
     List<PaymentMethodModel>? paymentMethods,
     bool? isLoading,
     bool? isSubmitting,
@@ -28,6 +32,7 @@ class WalletState {
   }) {
     return WalletState(
       requests: requests ?? this.requests,
+      transactions: transactions ?? this.transactions,
       paymentMethods: paymentMethods ?? this.paymentMethods,
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
@@ -44,16 +49,21 @@ class WalletNotifier extends StateNotifier<WalletState> {
     try {
       final results = await Future.wait([
         ApiClient.instance.get('/livreur/recharge-requests'),
+        ApiClient.instance.get('/livreur/wallet-transactions'),
         ApiClient.instance.get('/livreur/payment-methods'),
       ]);
       final requests = (results[0].data['requests'] as List)
           .map((r) => RechargeRequestModel.fromJson(r))
           .toList();
-      final methods = (results[1].data['payment_methods'] as List)
+      final transactions = (results[1].data['transactions'] as List)
+          .map((item) => WalletTransactionModel.fromJson(item))
+          .toList();
+      final methods = (results[2].data['payment_methods'] as List)
           .map((m) => PaymentMethodModel.fromJson(m))
           .toList();
       state = state.copyWith(
         requests: requests,
+        transactions: transactions,
         paymentMethods: methods,
         isLoading: false,
       );

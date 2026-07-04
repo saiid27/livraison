@@ -208,6 +208,51 @@ def list_recharge_requests():
     return jsonify({'requests': [r.to_dict() for r in requests_]}), 200
 
 
+@livreur_bp.route('/wallet-transactions', methods=['GET'])
+@jwt_required()
+@approved_captain_required
+def wallet_transactions():
+    user_id = get_jwt_identity()
+    recharges = RechargeRequest.query.filter_by(captain_id=user_id).all()
+    order_transactions = (
+        CashTransaction.query.join(Order, CashTransaction.order_id == Order.id)
+        .filter(
+            Order.livreur_id == user_id,
+            CashTransaction.transaction_type.in_(
+                ('commission', 'commission_refund')
+            ),
+        )
+        .all()
+    )
+
+    transactions = []
+    for req in recharges:
+        transactions.append({
+            'id': f'recharge-{req.id}',
+            'type': 'recharge',
+            'amount': req.amount,
+            'status': req.status,
+            'payment_method_name': req.payment_method.name if req.payment_method else None,
+            'description': req.rejection_reason,
+            'order_id': None,
+            'created_at': req.updated_at.isoformat() if req.updated_at else req.created_at.isoformat(),
+        })
+    for transaction in order_transactions:
+        transactions.append({
+            'id': f'{transaction.transaction_type}-{transaction.id}',
+            'type': transaction.transaction_type,
+            'amount': transaction.amount,
+            'status': 'verifie',
+            'payment_method_name': None,
+            'description': transaction.description,
+            'order_id': transaction.order_id,
+            'created_at': transaction.created_at.isoformat(),
+        })
+
+    transactions.sort(key=lambda item: item['created_at'], reverse=True)
+    return jsonify({'transactions': transactions}), 200
+
+
 @livreur_bp.route('/recharge-requests', methods=['POST'])
 @jwt_required()
 @approved_captain_required

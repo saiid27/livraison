@@ -8,7 +8,7 @@ import '../../../../core/widgets/language_button.dart';
 import '../../../../core/widgets/logout_button.dart';
 import '../providers/livreur_provider.dart';
 import '../providers/wallet_provider.dart';
-import '../../data/models/recharge_request_model.dart';
+import '../../data/models/wallet_transaction_model.dart';
 
 class LivreurWalletPage extends ConsumerStatefulWidget {
   final String baseRoute;
@@ -145,9 +145,9 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
 
               const SizedBox(height: 28),
 
-              // ── Recharge history ───────────────────────────────────
+              // ── Wallet history ─────────────────────────────────────
               Text(
-                isAr ? 'سجل الشحن' : 'Historique des recharges',
+                isAr ? 'سجل المحفظة' : 'Historique du portefeuille',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -163,7 +163,7 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else if (walletState.requests.isEmpty)
+              else if (walletState.transactions.isEmpty)
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
@@ -177,8 +177,8 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                         const SizedBox(height: 10),
                         Text(
                           isAr
-                              ? 'لا توجد عمليات شحن بعد'
-                              : 'Aucune recharge pour le moment',
+                              ? 'لا توجد عمليات في المحفظة بعد'
+                              : 'Aucune opération pour le moment',
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                           ),
@@ -188,8 +188,11 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
                   ),
                 )
               else
-                ...walletState.requests.map(
-                  (r) => _RechargeHistoryCard(request: r, isAr: isAr),
+                ...walletState.transactions.map(
+                  (transaction) => _WalletTransactionCard(
+                    transaction: transaction,
+                    isAr: isAr,
+                  ),
                 ),
             ],
           ),
@@ -201,17 +204,29 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
 
 // ── History card ──────────────────────────────────────────────────────────────
 
-class _RechargeHistoryCard extends StatelessWidget {
-  final RechargeRequestModel request;
+class _WalletTransactionCard extends StatelessWidget {
+  final WalletTransactionModel transaction;
   final bool isAr;
 
-  const _RechargeHistoryCard({required this.request, required this.isAr});
+  const _WalletTransactionCard({required this.transaction, required this.isAr});
 
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('dd/MM/yyyy');
     final timeFmt = DateFormat('HH:mm');
-    final (label, color, icon) = _statusInfo(request.status);
+    final (label, color, icon) = _statusInfo(transaction);
+    final sign = transaction.isDebit ? '-' : '+';
+    final title = transaction.type == 'commission'
+        ? (isAr ? 'عمولة الطلب' : 'Commission commande')
+        : transaction.type == 'commission_refund'
+        ? (isAr ? 'إرجاع عمولة' : 'Remboursement commission')
+        : (isAr ? 'شحن رصيد' : 'Recharge');
+    final subtitle = transaction.type == 'recharge'
+        ? (transaction.paymentMethodName ?? '')
+        : [
+            title,
+            if (transaction.orderId != null) '#${transaction.orderId}',
+          ].join(' ');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -236,27 +251,29 @@ class _RechargeHistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '+ ${request.amount.toStringAsFixed(0)} ${isAr ? 'أوقية' : 'MRU'}',
-                    style: const TextStyle(
+                    '$sign ${transaction.amount.toStringAsFixed(0)} ${isAr ? 'أوقية' : 'MRU'}',
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
-                      color: AppColors.textPrimary,
+                      color: transaction.isDebit
+                          ? AppColors.error
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    request.paymentMethodName ?? '',
+                    subtitle,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
-                  if (request.status == 'refuse' &&
-                      request.rejectionReason != null)
+                  if (transaction.status == 'refuse' &&
+                      transaction.description != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        '${isAr ? 'السبب: ' : 'Motif : '}${request.rejectionReason}',
+                        '${isAr ? 'السبب: ' : 'Motif : '}${transaction.description}',
                         style: const TextStyle(
                           color: AppColors.error,
                           fontSize: 11,
@@ -271,14 +288,14 @@ class _RechargeHistoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  fmt.format(request.createdAt),
+                  fmt.format(transaction.createdAt),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
                   ),
                 ),
                 Text(
-                  timeFmt.format(request.createdAt),
+                  timeFmt.format(transaction.createdAt),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
@@ -312,21 +329,37 @@ class _RechargeHistoryCard extends StatelessWidget {
     );
   }
 
-  (String, Color, IconData) _statusInfo(String status) => switch (status) {
-    'verifie' => (
-      isAr ? 'تم التحقق' : 'Vérifié',
-      AppColors.success,
-      Icons.check_circle_outline_rounded,
-    ),
-    'refuse' => (
-      isAr ? 'مرفوض' : 'Refusé',
-      AppColors.error,
-      Icons.cancel_outlined,
-    ),
-    _ => (
-      isAr ? 'في الانتظار' : 'En attente',
-      AppColors.warning,
-      Icons.hourglass_empty_rounded,
-    ),
-  };
+  (String, Color, IconData) _statusInfo(WalletTransactionModel transaction) {
+    if (transaction.type == 'commission') {
+      return (
+        isAr ? 'تم الخصم' : 'Débité',
+        AppColors.error,
+        Icons.remove_circle_outline,
+      );
+    }
+    if (transaction.type == 'commission_refund') {
+      return (
+        isAr ? 'تم الإرجاع' : 'Remboursé',
+        AppColors.success,
+        Icons.undo_outlined,
+      );
+    }
+    return switch (transaction.status) {
+      'verifie' => (
+        isAr ? 'تم التحقق' : 'Vérifié',
+        AppColors.success,
+        Icons.check_circle_outline_rounded,
+      ),
+      'refuse' => (
+        isAr ? 'مرفوض' : 'Refusé',
+        AppColors.error,
+        Icons.cancel_outlined,
+      ),
+      _ => (
+        isAr ? 'في الانتظار' : 'En attente',
+        AppColors.warning,
+        Icons.hourglass_empty_rounded,
+      ),
+    };
+  }
 }
