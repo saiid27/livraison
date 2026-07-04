@@ -50,9 +50,19 @@ class _AdminApprovalsPageState extends ConsumerState<AdminApprovalsPage> {
                 itemBuilder: (context, index) => _CaptainApprovalCard(
                   captain: state.users[index],
                   isArabic: isAr,
-                  onDecision: (status) => ref
-                      .read(adminProvider.notifier)
-                      .updateCaptainApproval(state.users[index].id, status),
+                  onDecision: (status) async {
+                    final error = await ref
+                        .read(adminProvider.notifier)
+                        .updateCaptainApproval(state.users[index].id, status);
+                    if (error != null && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.error,
+                          content: Text(error),
+                        ),
+                      );
+                    }
+                  },
                 ),
               ),
             ),
@@ -63,7 +73,7 @@ class _AdminApprovalsPageState extends ConsumerState<AdminApprovalsPage> {
 class _CaptainApprovalCard extends StatelessWidget {
   final UserModel captain;
   final bool isArabic;
-  final ValueChanged<String> onDecision;
+  final Future<void> Function(String status) onDecision;
 
   const _CaptainApprovalCard({
     required this.captain,
@@ -72,8 +82,70 @@ class _CaptainApprovalCard extends StatelessWidget {
   });
 
   String? _url(String? path) {
-    if (path == null) return null;
+    if (path == null || path.trim().isEmpty) return null;
+    if (path.startsWith('http')) return path;
     return '${AppConstants.baseUrl.replaceFirst('/api', '')}$path';
+  }
+
+  void _openImage(BuildContext context, String label, String? path) {
+    final imageUrl = _url(path);
+    if (imageUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isArabic ? 'الصورة غير متوفرة' : 'Image indisponible'),
+        ),
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (_) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                  Expanded(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+              Expanded(
+                child: InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4,
+                  child: Center(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white,
+                        size: 60,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -88,6 +160,9 @@ class _CaptainApprovalCard extends StatelessWidget {
       ),
       (isArabic ? 'التصريح' : 'Autorisation', captain.permitImage),
     ];
+    final hasMissingDocuments = documents.any(
+      (document) => _url(document.$2) == null,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
@@ -145,39 +220,55 @@ class _CaptainApprovalCard extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final (label, path) = documents[index];
-                return Container(
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _url(path) == null
-                            ? const Center(
-                                child: Icon(Icons.image_not_supported),
-                              )
-                            : Image.network(
-                                _url(path)!,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Icon(Icons.broken_image_outlined),
+                final imageUrl = _url(path);
+                return InkWell(
+                  onTap: () => _openImage(context, label, path),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: imageUrl == null
+                            ? AppColors.error.withValues(alpha: 0.45)
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: imageUrl == null
+                              ? const Center(
+                                  child: Icon(Icons.image_not_supported),
+                                )
+                              : Image.network(
+                                  imageUrl,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => const Center(
+                                    child: Icon(Icons.broken_image_outlined),
+                                  ),
                                 ),
-                              ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10),
                         ),
-                      ),
-                    ],
+                        Padding(
+                          padding: const EdgeInsets.all(5),
+                          child: Text(
+                            imageUrl == null
+                                ? '$label • ${isArabic ? 'ناقصة' : 'manquante'}'
+                                : label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: imageUrl == null
+                                  ? AppColors.error
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -198,7 +289,9 @@ class _CaptainApprovalCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => onDecision('approved'),
+                    onPressed: hasMissingDocuments
+                        ? null
+                        : () => onDecision('approved'),
                     icon: const Icon(Icons.check_rounded),
                     label: Text(isArabic ? 'قبول' : 'Valider'),
                     style: ElevatedButton.styleFrom(

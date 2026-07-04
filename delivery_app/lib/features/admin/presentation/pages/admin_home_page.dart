@@ -23,7 +23,7 @@ class AdminHomePage extends ConsumerWidget {
         isAr ? 'الصندوق' : 'Caisse',
         Icons.account_balance_wallet_outlined,
         AppColors.success,
-        () => _comingSoon(context, isAr),
+        () => context.go('/admin/cashbox'),
       ),
       _AdminItem(
         isAr ? 'طلبات شحن' : 'Demandes de recharge',
@@ -126,18 +126,6 @@ class AdminHomePage extends ConsumerWidget {
             itemBuilder: (context, index) => _AdminMenuCard(item: items[index]),
           ),
         ],
-      ),
-    );
-  }
-
-  static void _comingSoon(BuildContext context, bool isAr) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isAr
-              ? 'سيتم تفعيل هذا القسم لاحقًا'
-              : 'Section disponible prochainement',
-        ),
       ),
     );
   }

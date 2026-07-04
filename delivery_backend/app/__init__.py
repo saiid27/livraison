@@ -96,6 +96,7 @@ def create_app():
         from app.models.merchant_product import MerchantProduct  # noqa: F401
         from app.models.merchant_order import MerchantOrder  # noqa: F401
         from app.models.merchant_payment_method import MerchantPaymentMethod  # noqa: F401
+        from app.models.cash_transaction import CashTransaction  # noqa: F401
 
         enum_exists = db.session.execute(
             text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')")

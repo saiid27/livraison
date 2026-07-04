@@ -14,6 +14,7 @@ from app.models.account_deletion_request import AccountDeletionRequest
 from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
 from app.models.merchant_payment_method import MerchantPaymentMethod
+from app.models.cash_transaction import CashTransaction
 from app.utils.decorators import role_required
 from datetime import datetime
 
@@ -32,6 +33,41 @@ def _save_upload(upload, subfolder):
     filename = f'{uuid4().hex}{ext}'
     upload.save(os.path.join(target_dir, filename))
     return f'/uploads/{subfolder}/{filename}'
+
+
+def _cashbox_totals():
+    recharges = db.session.query(
+        db.func.coalesce(
+            db.func.sum(CashTransaction.amount),
+            0,
+        )
+    ).filter_by(transaction_type='recharge').scalar()
+    expenses = db.session.query(
+        db.func.coalesce(
+            db.func.sum(CashTransaction.amount),
+            0,
+        )
+    ).filter_by(transaction_type='expense').scalar()
+    return float(recharges or 0), float(expenses or 0)
+
+
+def _ensure_recharge_cash_transactions():
+    verified_requests = RechargeRequest.query.filter_by(status='verifie').all()
+    for req in verified_requests:
+        exists = CashTransaction.query.filter_by(
+            recharge_request_id=req.id,
+            transaction_type='recharge',
+        ).first()
+        if not exists:
+            db.session.add(
+                CashTransaction(
+                    transaction_type='recharge',
+                    amount=req.amount,
+                    description=f'Recharge vérifiée #{req.id}',
+                    recharge_request_id=req.id,
+                    created_at=req.updated_at or req.created_at,
+                )
+            )
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -143,6 +179,16 @@ def update_captain_approval(user_id):
     status = (request.get_json(silent=True) or {}).get('status')
     if status not in ('approved', 'rejected'):
         return jsonify({'message': 'Statut de validation invalide'}), 400
+    if status == 'approved':
+        required_images = [
+            captain.avatar,
+            captain.id_card_image,
+            captain.vehicle_image,
+            captain.vehicle_registration_image,
+            captain.permit_image,
+        ]
+        if any(not image for image in required_images):
+            return jsonify({'message': 'لا يمكن قبول الكابتن قبل رفع جميع الصور'}), 400
 
     captain.approval_status = status
     db.session.commit()
@@ -249,6 +295,14 @@ def approve_recharge(req_id):
 
     req.status = 'verifie'
     req.captain.balance += req.amount
+    db.session.add(
+        CashTransaction(
+            transaction_type='recharge',
+            amount=req.amount,
+            description=f'Recharge vérifiée #{req.id}',
+            recharge_request=req,
+        )
+    )
     db.session.commit()
     return jsonify({'request': req.to_dict(), 'message': 'Demande approuvée, solde mis à jour'}), 200
 
@@ -270,6 +324,68 @@ def reject_recharge(req_id):
     req.rejection_reason = reason or None
     db.session.commit()
     return jsonify({'request': req.to_dict(), 'message': 'Demande refusée'}), 200
+
+
+# ── Cashbox ───────────────────────────────────────────────────────────────────
+
+@admin_bp.route('/cashbox', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def cashbox_summary():
+    _ensure_recharge_cash_transactions()
+    db.session.commit()
+
+    total_recharges, total_expenses = _cashbox_totals()
+    transactions = CashTransaction.query.order_by(
+        CashTransaction.created_at.desc(),
+        CashTransaction.id.desc(),
+    ).all()
+
+    return jsonify({
+        'balance': total_recharges - total_expenses,
+        'total_recharges': total_recharges,
+        'total_expenses': total_expenses,
+        'transactions': [transaction.to_dict() for transaction in transactions],
+    }), 200
+
+
+@admin_bp.route('/cashbox/expenses', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+def create_cashbox_expense():
+    _ensure_recharge_cash_transactions()
+
+    data = request.get_json(silent=True) or {}
+    try:
+        amount = float(str(data.get('amount', '')).strip())
+    except (TypeError, ValueError):
+        amount = 0
+
+    description = str(data.get('description', '')).strip()
+    if amount <= 0:
+        return jsonify({'message': 'المبلغ غير صحيح'}), 400
+    if not description:
+        return jsonify({'message': 'وصف المصروف مطلوب'}), 400
+
+    total_recharges, total_expenses = _cashbox_totals()
+    balance = total_recharges - total_expenses
+    if amount > balance:
+        return jsonify({'message': 'المبلغ المصروف أكبر من المال المتوفر في الصندوق'}), 400
+
+    transaction = CashTransaction(
+        transaction_type='expense',
+        amount=amount,
+        description=description,
+    )
+    db.session.add(transaction)
+    db.session.commit()
+
+    total_recharges, total_expenses = _cashbox_totals()
+    return jsonify({
+        'transaction': transaction.to_dict(),
+        'balance': total_recharges - total_expenses,
+        'message': 'تم تسجيل المصروف',
+    }), 201
 
 
 # ── Account Deletion Requests ────────────────────────────────────────────────

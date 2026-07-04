@@ -95,12 +95,21 @@ class AdminNotifier extends StateNotifier<AdminState> {
     }
   }
 
-  Future<void> updateCaptainApproval(String userId, String status) async {
-    await ApiClient.instance.put(
-      '/admin/captains/$userId/approval',
-      data: {'status': status},
-    );
-    await loadPendingCaptains();
+  Future<String?> updateCaptainApproval(String userId, String status) async {
+    try {
+      await ApiClient.instance.put(
+        '/admin/captains/$userId/approval',
+        data: {'status': status},
+      );
+      await loadPendingCaptains();
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data is Map
+          ? error.response?.data['message']?.toString()
+          : null;
+      state = state.copyWith(error: message ?? 'Erreur');
+      return message ?? 'Erreur';
+    }
   }
 
   Future<void> updateOrderStatus(String orderId, String status) async {

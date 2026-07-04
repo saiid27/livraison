@@ -88,7 +88,13 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
         actions: [const LanguageButton(), const LogoutButton()],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          MediaQuery.viewInsetsOf(context).bottom + 16,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
@@ -141,6 +147,7 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
                       icon: Icons.radio_button_checked,
                       iconColor: AppColors.success,
                       isAr: isAr,
+                      openUp: false,
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 14),
@@ -154,6 +161,7 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
                       icon: Icons.location_on_outlined,
                       iconColor: AppColors.primary,
                       isAr: isAr,
+                      openUp: true,
                       onChanged: (_) => setState(() {}),
                     ),
                   ],
@@ -278,6 +286,7 @@ class _LocationSearchField extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final bool isAr;
+  final bool openUp;
   final ValueChanged<String> onChanged;
 
   const _LocationSearchField({
@@ -288,6 +297,7 @@ class _LocationSearchField extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.isAr,
+    required this.openUp,
     required this.onChanged,
   });
 
@@ -296,6 +306,9 @@ class _LocationSearchField extends StatelessWidget {
     return RawAutocomplete<String>(
       textEditingController: controller,
       focusNode: focusNode,
+      optionsViewOpenDirection: openUp
+          ? OptionsViewOpenDirection.up
+          : OptionsViewOpenDirection.down,
       displayStringForOption: (option) => option,
       optionsBuilder: (value) {
         final query = value.text.trim().toLowerCase();
@@ -309,6 +322,7 @@ class _LocationSearchField extends StatelessWidget {
         return TextFormField(
           controller: textController,
           focusNode: focusNode,
+          scrollPadding: const EdgeInsets.only(bottom: 260),
           onChanged: onChanged,
           onFieldSubmitted: (_) => onSubmitted(),
           decoration: InputDecoration(

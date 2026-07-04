@@ -22,6 +22,7 @@ import '../../features/livreur/presentation/pages/livreur_history_page.dart';
 import '../../features/livreur/presentation/pages/livreur_profile_page.dart';
 import '../../features/livreur/presentation/pages/livreur_wallet_page.dart';
 import '../../features/admin/presentation/pages/admin_home_page.dart';
+import '../../features/admin/presentation/pages/admin_cashbox_page.dart';
 import '../../features/admin/presentation/pages/admin_orders_page.dart';
 import '../../features/admin/presentation/pages/admin_users_page.dart';
 import '../../features/admin/presentation/pages/admin_approvals_page.dart';
@@ -242,6 +243,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => AdminShell(child: child),
         routes: [
           GoRoute(path: '/admin', builder: (_, __) => const AdminHomePage()),
+          GoRoute(
+            path: '/admin/cashbox',
+            builder: (_, __) => const AdminCashboxPage(),
+          ),
           GoRoute(
             path: '/admin/orders',
             builder: (_, __) => const AdminOrdersPage(),
