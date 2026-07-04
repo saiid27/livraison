@@ -25,6 +25,7 @@ class _AdminHomePageState extends ConsumerState<AdminHomePage> {
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final currentUser = ref.watch(authProvider).user;
+    final isDeveloper = currentUser?.isDeveloper == true;
     final items = [
       _AdminItem(
         isAr ? 'طلبات إنشاء الحساب' : 'Demandes de comptes',
@@ -38,7 +39,7 @@ class _AdminHomePageState extends ConsumerState<AdminHomePage> {
         AppColors.success,
         () => context.go('/admin/cashbox'),
       ),
-      if (currentUser?.isDeveloper == true)
+      if (isDeveloper)
         _AdminItem(
           isAr ? 'حسابات الأدمن' : 'Comptes admin',
           Icons.manage_accounts_outlined,
@@ -86,7 +87,11 @@ class _AdminHomePageState extends ConsumerState<AdminHomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isAr ? 'حساب الديفلوبر' : 'Compte développeur'),
+        title: Text(
+          isDeveloper
+              ? (isAr ? 'حساب الديفلوبر' : 'Compte développeur')
+              : (isAr ? 'حساب الأدمن' : 'Compte admin'),
+        ),
         actions: const [LanguageButton(), LogoutButton()],
       ),
       body: ListView(
@@ -122,8 +127,12 @@ class _AdminHomePageState extends ConsumerState<AdminHomePage> {
                       ),
                       Text(
                         isAr
-                            ? 'كل أدوات الإدارة في مكان واحد'
-                            : 'Tous les outils au même endroit',
+                            ? (isDeveloper
+                                  ? 'صلاحيات الديفلوبر وإدارة المنصة'
+                                  : 'أدوات إدارة المنصة')
+                            : (isDeveloper
+                                  ? 'Accès développeur et administration'
+                                  : "Outils d'administration"),
                         style: const TextStyle(color: Colors.white70),
                       ),
                     ],
