@@ -186,6 +186,7 @@ def create_admin_account():
     phone = str(data.get('phone') or '').strip()
     password = str(data.get('password') or '').strip()
     email = str(data.get('email') or '').strip().lower()
+    is_developer = bool(data.get('is_developer') or False)
 
     if not name or not phone or not password:
         return jsonify({'message': 'الاسم ورقم الهاتف وكلمة المرور مطلوبة'}), 400
@@ -206,7 +207,7 @@ def create_admin_account():
         password_hash=bcrypt.generate_password_hash(password).decode('utf-8'),
         role='admin',
         approval_status='approved',
-        is_developer=False,
+        is_developer=is_developer,
     )
     db.session.add(admin)
     db.session.commit()

@@ -44,6 +44,7 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
     final emailCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    bool asDeveloper = false;
     bool isSubmitting = false;
 
     await showModalBottomSheet(
@@ -122,6 +123,20 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  value: asDeveloper,
+                  onChanged: (value) => setModal(() => asDeveloper = value),
+                  title: Text(
+                    isAr ? 'جعله حساب ديفلوبر' : 'Compte développeur',
+                  ),
+                  subtitle: Text(
+                    isAr
+                        ? 'يمكنه إضافة أدمن أو ديفلوبر آخر'
+                        : 'Peut ajouter un autre admin ou développeur',
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                ),
                 const SizedBox(height: 14),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -134,6 +149,7 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
                             phone: phoneCtrl.text.trim(),
                             email: emailCtrl.text.trim(),
                             password: passwordCtrl.text.trim(),
+                            isDeveloper: asDeveloper,
                           );
                           if (!ctx.mounted) return;
                           Navigator.pop(ctx);
@@ -174,6 +190,7 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
     required String phone,
     required String email,
     required String password,
+    required bool isDeveloper,
   }) async {
     try {
       await ApiClient.instance.post(
@@ -183,6 +200,7 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
           'phone': phone,
           'email': email,
           'password': password,
+          'is_developer': isDeveloper,
         },
       );
       return null;
