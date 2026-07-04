@@ -285,6 +285,18 @@ def register():
         except ValueError as error:
             return jsonify({'message': str(error)}), 400
 
+    merchant_images = {}
+    if data['role'] == 'merchant':
+        if 'profile_image' not in request.files or not request.files['profile_image'].filename:
+            return jsonify({'message': 'صورة المؤسسة إلزامية'}), 400
+        try:
+            merchant_images['avatar'] = _save_upload(
+                request.files['profile_image'],
+                'merchant_profiles',
+            )
+        except ValueError as error:
+            return jsonify({'message': str(error)}), 400
+
     user = User(
         name=data['name'],
         email=email,
@@ -294,6 +306,7 @@ def register():
         approval_status='pending' if data['role'] in ('livreur', 'car_captain') else 'approved',
         vehicle_type='car' if data['role'] == 'car_captain' else 'moto',
         **captain_images,
+        **merchant_images,
     )
     db.session.add(user)
     db.session.commit()

@@ -61,6 +61,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       );
       return;
     }
+    if (_selectedRole == AppConstants.roleMerchant &&
+        !_captainDocuments.containsKey('profile_image')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isAr
+                ? 'يرجى رفع صورة المؤسسة'
+                : 'Veuillez ajouter la photo de la boutique',
+          ),
+        ),
+      );
+      return;
+    }
 
     final success = await ref
         .read(authProvider.notifier)
@@ -236,6 +249,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     onPick: _pickDocument,
                   ),
                 ],
+                if (_selectedRole == AppConstants.roleMerchant) ...[
+                  const SizedBox(height: 24),
+                  _MerchantProfileImage(
+                    isArabic: isAr,
+                    selected: _captainDocuments['profile_image'],
+                    onPick: () => _pickDocument('profile_image'),
+                  ),
+                ],
                 if (authState.error != null) ...[
                   const SizedBox(height: 14),
                   Container(
@@ -403,6 +424,87 @@ class _CaptainDocuments extends StatelessWidget {
             ),
           );
         }),
+      ],
+    );
+  }
+}
+
+class _MerchantProfileImage extends StatelessWidget {
+  final bool isArabic;
+  final XFile? selected;
+  final VoidCallback onPick;
+
+  const _MerchantProfileImage({
+    required this.isArabic,
+    required this.selected,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selected != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          isArabic ? 'صورة المؤسسة' : 'Photo de la boutique',
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isArabic
+              ? 'ستظهر هذه الصورة للزبائن في صفحة المؤسسات'
+              : 'Cette photo sera affichée aux clients dans la liste des boutiques',
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        Material(
+          color: isSelected
+              ? AppColors.success.withValues(alpha: 0.08)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onPick,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.success
+                      : AppColors.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isSelected
+                        ? Icons.check_circle_outline
+                        : Icons.storefront_outlined,
+                    color: isSelected ? AppColors.success : AppColors.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isSelected
+                          ? (isArabic ? 'تم اختيار الصورة' : 'Photo choisie')
+                          : (isArabic
+                                ? 'اختيار صورة المؤسسة'
+                                : 'Choisir la photo'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }

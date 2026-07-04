@@ -20,12 +20,39 @@ class ClientMarketplacePage extends ConsumerStatefulWidget {
 }
 
 class _ClientMarketplacePageState extends ConsumerState<ClientMarketplacePage> {
+  MarketplaceMerchantModel? _selectedMerchant;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(
-      () => ref.read(marketplaceProvider.notifier).loadProducts(),
+      () => ref.read(marketplaceProvider.notifier).loadMerchants(),
     );
+  }
+
+  Future<void> _selectMerchant(MarketplaceMerchantModel merchant) async {
+    setState(() => _selectedMerchant = merchant);
+    await ref
+        .read(marketplaceProvider.notifier)
+        .loadProducts(merchantId: merchant.id);
+  }
+
+  Future<void> _refresh() {
+    final merchant = _selectedMerchant;
+    if (merchant == null) {
+      return ref.read(marketplaceProvider.notifier).loadMerchants();
+    }
+    return ref
+        .read(marketplaceProvider.notifier)
+        .loadProducts(merchantId: merchant.id);
+  }
+
+  void _goBack() {
+    if (_selectedMerchant != null) {
+      setState(() => _selectedMerchant = null);
+      return;
+    }
+    context.go('/client');
   }
 
   @override
@@ -35,19 +62,29 @@ class _ClientMarketplacePageState extends ConsumerState<ClientMarketplacePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAr ? 'منتجات التجار' : 'Produits'),
+        title: Text(
+          _selectedMerchant == null
+              ? (isAr ? 'المؤسسات' : 'Boutiques')
+              : _selectedMerchant!.name,
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/client'),
+          onPressed: _goBack,
         ),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _selectedMerchant == null
+          ? _MerchantsList(
+              merchants: state.merchants,
+              isAr: isAr,
+              onRefresh: _refresh,
+              onSelect: _selectMerchant,
+            )
           : state.products.isEmpty
           ? Center(child: Text(isAr ? 'لا توجد منتجات' : 'Aucun produit'))
           : RefreshIndicator(
-              onRefresh: () =>
-                  ref.read(marketplaceProvider.notifier).loadProducts(),
+              onRefresh: _refresh,
               child: ListView.builder(
                 padding: const EdgeInsets.all(14),
                 itemCount: state.products.length,
@@ -55,6 +92,115 @@ class _ClientMarketplacePageState extends ConsumerState<ClientMarketplacePage> {
                     _ProductCard(product: state.products[index], isAr: isAr),
               ),
             ),
+    );
+  }
+}
+
+class _MerchantsList extends StatelessWidget {
+  const _MerchantsList({
+    required this.merchants,
+    required this.isAr,
+    required this.onRefresh,
+    required this.onSelect,
+  });
+
+  final List<MarketplaceMerchantModel> merchants;
+  final bool isAr;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<MarketplaceMerchantModel> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    if (merchants.isEmpty) {
+      return Center(child: Text(isAr ? 'لا توجد مؤسسات' : 'Aucune boutique'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(14),
+        itemCount: merchants.length,
+        itemBuilder: (_, index) => _MerchantCard(
+          merchant: merchants[index],
+          isAr: isAr,
+          onTap: () => onSelect(merchants[index]),
+        ),
+      ),
+    );
+  }
+}
+
+class _MerchantCard extends StatelessWidget {
+  const _MerchantCard({
+    required this.merchant,
+    required this.isAr,
+    required this.onTap,
+  });
+
+  final MarketplaceMerchantModel merchant;
+  final bool isAr;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final contact = merchant.contactPhone?.trim().isNotEmpty == true
+        ? merchant.contactPhone!.trim()
+        : (isAr ? 'غير محدد' : 'Non défini');
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              ProductImage(url: merchant.avatarUrl, size: 76),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      merchant.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: [
+                        InfoPill(
+                          icon: Icons.inventory_2_outlined,
+                          label:
+                              '${merchant.productCount} ${isAr ? 'منتج' : 'produits'}',
+                          color: AppColors.primary,
+                        ),
+                        InfoPill(
+                          icon: Icons.phone_outlined,
+                          label: contact,
+                          color: AppColors.success,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                isAr ? Icons.chevron_left : Icons.chevron_right,
+                color: AppColors.primary,
+                size: 32,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -246,9 +392,7 @@ class _ProductCard extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isAr
-                ? 'تعذر فتح واتساب'
-                : "Impossible d'ouvrir WhatsApp",
+            isAr ? 'تعذر فتح واتساب' : "Impossible d'ouvrir WhatsApp",
           ),
         ),
       );
@@ -338,6 +482,7 @@ class _PurchaseFormState extends ConsumerState<_PurchaseForm> {
         .read(marketplaceProvider.notifier)
         .buyProduct(
           productId: widget.product.id,
+          merchantId: widget.product.merchantId,
           quantity: quantity,
           buyerName: _nameCtrl.text.trim(),
           paymentPhoneFrom: _phoneCtrl.text.trim(),
@@ -378,7 +523,10 @@ class _PurchaseFormState extends ConsumerState<_PurchaseForm> {
             children: [
               Text(
                 isAr ? 'تأكيد الشراء' : 'Confirmer l\'achat',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

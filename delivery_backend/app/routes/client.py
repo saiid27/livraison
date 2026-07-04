@@ -113,11 +113,56 @@ def cancel_order(order_id):
 @jwt_required()
 @role_required('client')
 def list_products():
+    merchant_id = request.args.get('merchant_id')
     products = MerchantProduct.query.filter(
         MerchantProduct.is_active == True,
         MerchantProduct.quantity > 0,
-    ).order_by(MerchantProduct.created_at.desc()).all()
+    )
+    if merchant_id:
+        products = products.filter(MerchantProduct.merchant_id == merchant_id)
+    products = products.order_by(MerchantProduct.created_at.desc()).all()
     return jsonify({'products': [product.to_dict() for product in products]}), 200
+
+
+@client_bp.route('/merchants', methods=['GET'])
+@jwt_required()
+@role_required('client')
+def list_merchants():
+    merchants = (
+        User.query.join(MerchantProduct, User.id == MerchantProduct.merchant_id)
+        .filter(
+            User.role == 'merchant',
+            User.is_active == True,
+            MerchantProduct.is_active == True,
+            MerchantProduct.quantity > 0,
+        )
+        .distinct()
+        .order_by(User.name.asc())
+        .all()
+    )
+
+    payload = []
+    for merchant in merchants:
+        available_products = [
+            product
+            for product in merchant.products
+            if product.is_active and product.quantity > 0
+        ]
+        payload.append({
+            'id': merchant.id,
+            'name': merchant.name,
+            'avatar': merchant.avatar,
+            'merchant_contact_phone': merchant.merchant_contact_phone,
+            'merchant_payment_phone': merchant.merchant_payment_phone,
+            'merchant_payment_methods': [
+                method.to_dict()
+                for method in merchant.merchant_payment_methods
+                if method.is_active
+            ],
+            'product_count': len(available_products),
+        })
+
+    return jsonify({'merchants': payload}), 200
 
 
 @client_bp.route('/product-orders', methods=['GET'])

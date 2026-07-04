@@ -58,16 +58,6 @@ class ClientHomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           _ServiceCard(
-            title: isAr ? 'طلب كورس' : 'Demander une course',
-            subtitle: isAr
-                ? 'اطلب كابتنًا لمشوارك'
-                : 'Demander un capitaine pour votre trajet',
-            icon: Icons.directions_car_outlined,
-            color: AppColors.success,
-            onTap: () => context.go('/client/new-order?type=course'),
-          ),
-          const SizedBox(height: 14),
-          _ServiceCard(
             title: isAr ? 'تسوق وشراء عبر الإنترنت' : 'Achats en ligne',
             subtitle: isAr
                 ? 'تصفح المنتجات واطلبها من التجار'
