@@ -53,13 +53,13 @@ class AdminHomePage extends ConsumerWidget {
         isAr ? 'قائمة الكباتنة' : 'Liste des capitaines',
         Icons.delivery_dining_outlined,
         Colors.teal,
-        () => context.go('/admin/users'),
+        () => context.go('/admin/captains'),
       ),
       _AdminItem(
         isAr ? 'قائمة التجار' : 'Liste des commerçants',
         Icons.storefront_outlined,
         AppColors.secondary,
-        () => context.go('/admin/users'),
+        () => context.go('/admin/merchants'),
       ),
     ];
 

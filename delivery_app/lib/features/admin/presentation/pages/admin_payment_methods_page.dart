@@ -27,10 +27,17 @@ class _AdminPaymentMethodsPageState
   void initState() {
     super.initState();
     Future.microtask(
-        () => ref.read(adminRechargeProvider.notifier).loadPaymentMethods());
+      () => ref.read(adminRechargeProvider.notifier).loadPaymentMethods(),
+    );
   }
 
   String get _imageBase => AppConstants.baseUrl.replaceAll('/api', '');
+
+  String? _imageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    return '$_imageBase$path';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,26 +61,25 @@ class _AdminPaymentMethodsPageState
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.paymentMethods.isEmpty
-              ? Center(
-                  child: Text(
-                    isAr ? 'لا توجد طرق دفع بعد' : 'Aucun moyen de paiement',
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: () => ref
-                      .read(adminRechargeProvider.notifier)
-                      .loadPaymentMethods(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: state.paymentMethods.length,
-                    itemBuilder: (_, i) => _MethodCard(
-                      method: state.paymentMethods[i],
-                      isAr: isAr,
-                      imageBase: _imageBase,
-                    ),
-                  ),
+          ? Center(
+              child: Text(
+                isAr ? 'لا توجد طرق دفع بعد' : 'Aucun moyen de paiement',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(adminRechargeProvider.notifier).loadPaymentMethods(),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(14),
+                itemCount: state.paymentMethods.length,
+                itemBuilder: (_, i) => _MethodCard(
+                  method: state.paymentMethods[i],
+                  isAr: isAr,
+                  imageBase: _imageBase,
                 ),
+              ),
+            ),
     );
   }
 
@@ -84,8 +90,7 @@ class _AdminPaymentMethodsPageState
     PaymentMethodModel? existing,
   }) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
-    final phoneCtrl =
-        TextEditingController(text: existing?.phoneNumber ?? '');
+    final phoneCtrl = TextEditingController(text: existing?.phoneNumber ?? '');
     final formKey = GlobalKey<FormState>();
     String? logoPath;
     bool isActive = existing?.isActive ?? true;
@@ -144,9 +149,7 @@ class _AdminPaymentMethodsPageState
                       ),
                       child: _LogoPreview(
                         localPath: logoPath,
-                        networkUrl: existing?.logoUrl != null
-                            ? '${AppConstants.baseUrl.replaceAll('/api', '')}${existing!.logoUrl}'
-                            : null,
+                        networkUrl: _imageUrl(existing?.logoUrl),
                       ),
                     ),
                   ),
@@ -154,7 +157,9 @@ class _AdminPaymentMethodsPageState
                 const SizedBox(height: 6),
                 Center(
                   child: Text(
-                    isAr ? 'انقر لتغيير الشعار' : 'Appuyez pour changer le logo',
+                    isAr
+                        ? 'انقر لتغيير الشعار'
+                        : 'Appuyez pour changer le logo',
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
@@ -198,6 +203,19 @@ class _AdminPaymentMethodsPageState
                 ElevatedButton(
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
+                    if (existing == null && logoPath == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.error,
+                          content: Text(
+                            isAr
+                                ? 'يرجى اختيار صورة طريقة الدفع'
+                                : 'Veuillez choisir le logo',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     Navigator.pop(ctx);
 
                     String? err;
@@ -222,16 +240,19 @@ class _AdminPaymentMethodsPageState
                     }
 
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(
-                        err ??
-                            (isAr
-                                ? 'تم الحفظ بنجاح'
-                                : 'Enregistré avec succès'),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          err ??
+                              (isAr
+                                  ? 'تم الحفظ بنجاح'
+                                  : 'Enregistré avec succès'),
+                        ),
+                        backgroundColor: err != null
+                            ? AppColors.error
+                            : AppColors.success,
                       ),
-                      backgroundColor:
-                          err != null ? AppColors.error : AppColors.success,
-                    ));
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(50),
@@ -279,11 +300,16 @@ class _LogoPreview extends StatelessWidget {
           fit: BoxFit.contain,
           width: 90,
           height: 90,
-          errorBuilder: (_, __, ___) => const Icon(Icons.payment, size: 36),
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.payment, size: 36),
         ),
       );
     }
-    return const Icon(Icons.add_photo_alternate_outlined, size: 36, color: AppColors.textSecondary);
+    return const Icon(
+      Icons.add_photo_alternate_outlined,
+      size: 36,
+      color: AppColors.textSecondary,
+    );
   }
 }
 
@@ -302,19 +328,25 @@ class _MethodCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final logoUrl = method.logoUrl == null || method.logoUrl!.isEmpty
+        ? null
+        : method.logoUrl!.startsWith('http')
+        ? method.logoUrl!
+        : '$imageBase${method.logoUrl}';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
         leading: SizedBox(
           width: 48,
           height: 48,
-          child: method.logoUrl != null
+          child: logoUrl != null
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.network(
-                    '$imageBase${method.logoUrl}',
+                    logoUrl,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) =>
+                    errorBuilder: (context, error, stackTrace) =>
                         const Icon(Icons.payment, size: 30),
                   ),
                 )
@@ -335,8 +367,7 @@ class _MethodCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: method.isActive
                     ? AppColors.success.withValues(alpha: 0.1)
@@ -360,13 +391,9 @@ class _MethodCard extends ConsumerWidget {
                 if (v == 'edit') {
                   await (context
                           .findAncestorStateOfType<
-                              _AdminPaymentMethodsPageState>())
-                      ?._showMethodDialog(
-                    context,
-                    ref,
-                    isAr,
-                    existing: method,
-                  );
+                            _AdminPaymentMethodsPageState
+                          >())
+                      ?._showMethodDialog(context, ref, isAr, existing: method);
                 } else if (v == 'delete') {
                   final confirm = await showDialog<bool>(
                     context: context,
@@ -397,12 +424,16 @@ class _MethodCard extends ConsumerWidget {
                       .read(adminRechargeProvider.notifier)
                       .deletePaymentMethod(method.id);
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(
-                        err ?? (isAr ? 'تم الحذف' : 'Supprimé avec succès')),
-                    backgroundColor:
-                        err != null ? AppColors.error : AppColors.success,
-                  ));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        err ?? (isAr ? 'تم الحذف' : 'Supprimé avec succès'),
+                      ),
+                      backgroundColor: err != null
+                          ? AppColors.error
+                          : AppColors.success,
+                    ),
+                  );
                 }
               },
               itemBuilder: (_) => [
@@ -420,7 +451,11 @@ class _MethodCard extends ConsumerWidget {
                   value: 'delete',
                   child: Row(
                     children: [
-                      const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                      const Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         isAr ? 'حذف' : 'Supprimer',

@@ -154,6 +154,88 @@ def toggle_user(user_id):
     return jsonify({'user': user.to_dict(), 'message': f'Utilisateur {action}'}), 200
 
 
+@admin_bp.route('/captains', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def list_captains():
+    captains = User.query.filter(
+        User.role.in_(('livreur', 'car_captain')),
+    ).order_by(User.created_at.desc()).all()
+    return jsonify({'users': [captain.to_dict() for captain in captains]}), 200
+
+
+@admin_bp.route('/captains/<int:user_id>', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def captain_profile(user_id):
+    captain = User.query.filter(
+        User.id == user_id,
+        User.role.in_(('livreur', 'car_captain')),
+    ).first()
+    if not captain:
+        return jsonify({'message': 'Capitaine introuvable'}), 404
+
+    orders = Order.query.filter_by(livreur_id=user_id).order_by(
+        Order.created_at.desc(),
+    ).all()
+    recharges = RechargeRequest.query.filter_by(captain_id=user_id).order_by(
+        RechargeRequest.created_at.desc(),
+    ).all()
+    delivered = sum(1 for order in orders if order.status == 'livre')
+
+    return jsonify({
+        'user': captain.to_dict(),
+        'orders': [order.to_dict() for order in orders],
+        'recharge_requests': [recharge.to_dict() for recharge in recharges],
+        'stats': {
+            'orders_count': len(orders),
+            'delivered_count': delivered,
+            'balance': captain.balance,
+        },
+    }), 200
+
+
+@admin_bp.route('/merchants', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def list_merchants():
+    merchants = User.query.filter_by(role='merchant').order_by(
+        User.created_at.desc(),
+    ).all()
+    return jsonify({'users': [merchant.to_dict() for merchant in merchants]}), 200
+
+
+@admin_bp.route('/merchants/<int:user_id>', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def merchant_profile(user_id):
+    merchant = User.query.filter_by(id=user_id, role='merchant').first()
+    if not merchant:
+        return jsonify({'message': 'Commerçant introuvable'}), 404
+
+    products = MerchantProduct.query.filter_by(merchant_id=user_id).order_by(
+        MerchantProduct.created_at.desc(),
+    ).all()
+    orders = MerchantOrder.query.filter_by(merchant_id=user_id).order_by(
+        MerchantOrder.created_at.desc(),
+    ).all()
+    methods = MerchantPaymentMethod.query.filter_by(merchant_id=user_id).order_by(
+        MerchantPaymentMethod.created_at.desc(),
+    ).all()
+
+    return jsonify({
+        'user': merchant.to_dict(),
+        'products': [product.to_dict() for product in products],
+        'orders': [order.to_dict() for order in orders],
+        'payment_methods': [method.to_dict() for method in methods],
+        'stats': {
+            'products_count': len(products),
+            'orders_count': len(orders),
+            'sales_total': sum(order.total_price for order in orders),
+        },
+    }), 200
+
+
 @admin_bp.route('/captains/pending', methods=['GET'])
 @jwt_required()
 @role_required('admin')
@@ -214,13 +296,13 @@ def create_payment_method():
 
     if not name or not phone_number:
         return jsonify({'message': 'Nom et numéro de paiement sont requis'}), 400
+    if 'logo' not in request.files or not request.files['logo'].filename:
+        return jsonify({'message': 'صورة طريقة الدفع إلزامية'}), 400
 
-    logo_url = None
-    if 'logo' in request.files and request.files['logo'].filename:
-        try:
-            logo_url = _save_upload(request.files['logo'], 'payment_methods')
-        except ValueError as e:
-            return jsonify({'message': str(e)}), 400
+    try:
+        logo_url = _save_upload(request.files['logo'], 'payment_methods')
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
 
     method = PaymentMethod(name=name, phone_number=phone_number, logo=logo_url)
     db.session.add(method)

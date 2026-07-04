@@ -103,6 +103,13 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
 
   String get _imageBase => AppConstants.baseUrl.replaceAll('/api', '');
 
+  String? _methodLogoUrl(PaymentMethodModel method) {
+    final logo = method.logoUrl;
+    if (logo == null || logo.isEmpty) return null;
+    if (logo.startsWith('http')) return logo;
+    return '$_imageBase$logo';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
@@ -145,7 +152,8 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: methods.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 10),
                     itemBuilder: (context, i) {
                       final m = methods[i];
                       final selected = _selectedMethod?.id == m.id;
@@ -169,12 +177,7 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _MethodLogo(
-                                logoUrl: m.logoUrl != null
-                                    ? '$_imageBase${m.logoUrl}'
-                                    : null,
-                                size: 44,
-                              ),
+                              _MethodLogo(logoUrl: _methodLogoUrl(m), size: 44),
                               const SizedBox(height: 6),
                               Text(
                                 m.name,
@@ -401,7 +404,7 @@ class _MethodLogo extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Container(
+        errorBuilder: (context, error, stackTrace) => Container(
           width: size,
           height: size,
           decoration: BoxDecoration(

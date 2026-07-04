@@ -29,6 +29,7 @@ import '../../features/admin/presentation/pages/admin_approvals_page.dart';
 import '../../features/admin/presentation/pages/admin_recharge_requests_page.dart';
 import '../../features/admin/presentation/pages/admin_payment_methods_page.dart';
 import '../../features/admin/presentation/pages/admin_account_deletion_requests_page.dart';
+import '../../features/admin/presentation/pages/admin_role_profiles_page.dart';
 import '../../features/livreur/presentation/pages/livreur_recharge_page.dart';
 import '../../features/merchant/presentation/pages/merchant_home_page.dart';
 import '../../features/merchant/presentation/pages/merchant_add_product_page.dart';
@@ -254,6 +255,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/users',
             builder: (_, __) => const AdminUsersPage(),
+          ),
+          GoRoute(
+            path: '/admin/captains',
+            builder: (_, __) =>
+                const AdminRoleProfilesPage(kind: AdminProfileKind.captain),
+          ),
+          GoRoute(
+            path: '/admin/captains/:id',
+            builder: (_, state) => AdminProfileDetailPage(
+              kind: AdminProfileKind.captain,
+              userId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/admin/merchants',
+            builder: (_, __) =>
+                const AdminRoleProfilesPage(kind: AdminProfileKind.merchant),
+          ),
+          GoRoute(
+            path: '/admin/merchants/:id',
+            builder: (_, state) => AdminProfileDetailPage(
+              kind: AdminProfileKind.merchant,
+              userId: state.pathParameters['id']!,
+            ),
           ),
           GoRoute(
             path: '/admin/approvals',
