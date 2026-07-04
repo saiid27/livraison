@@ -13,6 +13,9 @@ class OrderModel {
   final String? clientName;
   final String? clientPhone;
   final String? cancellationReason;
+  final DateTime? pickedUpAt;
+  final DateTime? commissionChargedAt;
+  final double? commissionAmount;
   final DateTime createdAt;
 
   const OrderModel({
@@ -30,6 +33,9 @@ class OrderModel {
     this.clientName,
     this.clientPhone,
     this.cancellationReason,
+    this.pickedUpAt,
+    this.commissionChargedAt,
+    this.commissionAmount,
     required this.createdAt,
   });
 
@@ -49,6 +55,13 @@ class OrderModel {
       clientName: json['client_name'],
       clientPhone: json['client_phone'],
       cancellationReason: json['cancellation_reason'],
+      pickedUpAt: json['picked_up_at'] != null
+          ? DateTime.tryParse(json['picked_up_at'].toString())
+          : null,
+      commissionChargedAt: json['commission_charged_at'] != null
+          ? DateTime.tryParse(json['commission_charged_at'].toString())
+          : null,
+      commissionAmount: (json['commission_amount'] as num?)?.toDouble(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),

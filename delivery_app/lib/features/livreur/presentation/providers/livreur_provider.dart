@@ -91,6 +91,26 @@ class LivreurNotifier extends StateNotifier<LivreurState> {
     }
   }
 
+  Future<String?> confirmPickup(String orderId) async {
+    try {
+      await ApiClient.instance.post('/livreur/orders/$orderId/pickup');
+      await loadData();
+      await loadWallet();
+      return null;
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['code'] != null) {
+        return data['code'].toString();
+      }
+      if (data is Map && data['message'] != null) {
+        return data['message'].toString();
+      }
+      return 'error';
+    } catch (_) {
+      return 'error';
+    }
+  }
+
   Future<bool> cancelOrder(String orderId, String reason) async {
     try {
       await ApiClient.instance.post(
@@ -120,7 +140,6 @@ class LivreurNotifier extends StateNotifier<LivreurState> {
   void toggleOnline() => state = state.copyWith(isOnline: !state.isOnline);
 }
 
-final livreurProvider =
-    StateNotifierProvider<LivreurNotifier, LivreurState>(
+final livreurProvider = StateNotifierProvider<LivreurNotifier, LivreurState>(
   (ref) => LivreurNotifier(),
 );

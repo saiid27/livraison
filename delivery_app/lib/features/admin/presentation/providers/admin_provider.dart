@@ -121,6 +121,47 @@ class AdminNotifier extends StateNotifier<AdminState> {
       await loadOrders();
     } catch (_) {}
   }
+
+  Future<String?> createManualOrder({
+    required String description,
+    required String pickupAddress,
+    required String deliveryAddress,
+    required String customerPhone,
+    required String customerName,
+    double? price,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final data = <String, dynamic>{
+        'description': description,
+        'pickup_address': pickupAddress,
+        'delivery_address': deliveryAddress,
+        'customer_phone': customerPhone,
+        'customer_name': customerName,
+      };
+      if (price != null) data['price'] = price;
+
+      final response = await ApiClient.instance.post(
+        '/admin/orders',
+        data: data,
+      );
+      final order = OrderModel.fromJson(response.data['order']);
+      state = state.copyWith(
+        orders: [order, ...state.orders],
+        isLoading: false,
+      );
+      return null;
+    } on DioException catch (e) {
+      final message = e.response?.data is Map
+          ? e.response?.data['message']?.toString()
+          : null;
+      state = state.copyWith(
+        isLoading: false,
+        error: message ?? 'Erreur de création',
+      );
+      return message ?? 'Erreur de création';
+    }
+  }
 }
 
 final adminProvider = StateNotifierProvider<AdminNotifier, AdminState>(

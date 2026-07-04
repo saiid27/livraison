@@ -137,6 +137,11 @@ def create_app():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_developer BOOLEAN NOT NULL DEFAULT FALSE",
             "ALTER TABLE orders ALTER COLUMN price DROP NOT NULL",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_type VARCHAR(20) NOT NULL DEFAULT 'delivery'",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS manual_customer_name VARCHAR(120)",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS manual_customer_phone VARCHAR(20)",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS picked_up_at TIMESTAMP",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_charged_at TIMESTAMP",
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS commission_amount FLOAT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS balance FLOAT NOT NULL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(10) NOT NULL DEFAULT 'moto'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS merchant_contact_phone VARCHAR(20)",
@@ -148,6 +153,7 @@ def create_app():
             "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS notes TEXT",
             "ALTER TABLE merchant_products ADD COLUMN IF NOT EXISTS image VARCHAR(255)",
             "ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS logo VARCHAR(255)",
+            "ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS order_id INTEGER",
         ):
             db.session.execute(text(statement))
         db.session.execute(text("""

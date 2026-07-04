@@ -177,6 +177,7 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
                     backgroundColor: AppColors.success,
                   ),
                 );
+                if (mounted) context.go('${widget.baseRoute}/history');
               } else {
                 setDialogState(() => accepting = false);
                 final msg = errorCode == 'insufficient_balance'
@@ -436,13 +437,28 @@ class _IncomingOrderDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    order.clientName ?? (isAr ? 'زبون' : 'Client'),
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.clientName ?? (isAr ? 'زبون' : 'Client'),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (order.clientPhone != null &&
+                          order.clientPhone!.isNotEmpty)
+                        Text(
+                          order.clientPhone!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 if (order.price != null)

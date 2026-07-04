@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
 import '../../../../core/widgets/logout_button.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../widgets/admin_manual_order_dialog.dart';
 
 class AdminHomePage extends ConsumerStatefulWidget {
   const AdminHomePage({super.key});
@@ -21,12 +22,25 @@ class _AdminHomePageState extends ConsumerState<AdminHomePage> {
     Future.microtask(() => ref.read(authProvider.notifier).refreshProfile());
   }
 
+  Future<void> _showCreateOrderDialog() async {
+    await showDialog<bool>(
+      context: context,
+      builder: (_) => const AdminManualOrderDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final currentUser = ref.watch(authProvider).user;
     final isDeveloper = currentUser?.isDeveloper == true;
     final items = [
+      _AdminItem(
+        isAr ? 'طلب توصيل' : 'Créer une livraison',
+        Icons.add_location_alt_outlined,
+        AppColors.primary,
+        _showCreateOrderDialog,
+      ),
       _AdminItem(
         isAr ? 'طلبات إنشاء الحساب' : 'Demandes de comptes',
         Icons.how_to_reg_outlined,

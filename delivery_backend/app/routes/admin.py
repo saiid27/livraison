@@ -16,6 +16,7 @@ from app.models.merchant_order import MerchantOrder
 from app.models.merchant_payment_method import MerchantPaymentMethod
 from app.models.cash_transaction import CashTransaction
 from app.utils.decorators import role_required
+from app.delivery_locations import trial_delivery_price
 from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
@@ -36,19 +37,19 @@ def _save_upload(upload, subfolder):
 
 
 def _cashbox_totals():
-    recharges = db.session.query(
+    incomes = db.session.query(
         db.func.coalesce(
             db.func.sum(CashTransaction.amount),
             0,
         )
-    ).filter_by(transaction_type='recharge').scalar()
+    ).filter(CashTransaction.transaction_type.in_(('recharge', 'commission'))).scalar()
     expenses = db.session.query(
         db.func.coalesce(
             db.func.sum(CashTransaction.amount),
             0,
         )
-    ).filter_by(transaction_type='expense').scalar()
-    return float(recharges or 0), float(expenses or 0)
+    ).filter(CashTransaction.transaction_type.in_(('expense', 'commission_refund'))).scalar()
+    return float(incomes or 0), float(expenses or 0)
 
 
 def _ensure_recharge_cash_transactions():
@@ -111,6 +112,50 @@ def get_all_orders():
         query = query.filter_by(status=status)
     orders = query.order_by(Order.created_at.desc()).all()
     return jsonify({'orders': [o.to_dict() for o in orders]}), 200
+
+
+@admin_bp.route('/orders', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+def create_manual_order():
+    admin_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    description = str(data.get('description') or '').strip()
+    pickup_address = str(data.get('pickup_address') or '').strip()
+    delivery_address = str(data.get('delivery_address') or '').strip()
+    customer_name = str(data.get('customer_name') or '').strip()
+    customer_phone = str(data.get('customer_phone') or '').strip()
+    custom_price = data.get('price')
+
+    if not description or not pickup_address or not delivery_address or not customer_phone:
+        return jsonify({'message': 'الوصف ونقاط التوصيل ورقم الزبون مطلوبة'}), 400
+    if pickup_address == delivery_address:
+        return jsonify({'message': 'Les deux points doivent être différents'}), 400
+    if custom_price in (None, ''):
+        price = trial_delivery_price(pickup_address, delivery_address)
+    else:
+        try:
+            price = float(custom_price)
+        except (TypeError, ValueError):
+            return jsonify({'message': 'السعر غير صحيح'}), 400
+    if price is None or price <= 0:
+        return jsonify({'message': 'السعر مطلوب عندما تكون النقطة خاصة'}), 400
+
+    order = Order(
+        client_id=admin_id,
+        description=description,
+        pickup_address=pickup_address,
+        delivery_address=delivery_address,
+        service_type='delivery',
+        price=price,
+        manual_customer_name=customer_name or 'زبون بدون حساب',
+        manual_customer_phone=customer_phone,
+        notes=data.get('notes'),
+    )
+    db.session.add(order)
+    db.session.commit()
+    return jsonify({'order': order.to_dict(), 'message': 'تم إرسال الطلب'}), 201
 
 
 @admin_bp.route('/orders/<int:order_id>/status', methods=['PUT'])

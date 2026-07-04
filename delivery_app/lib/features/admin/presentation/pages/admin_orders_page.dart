@@ -46,7 +46,7 @@ class _AdminOrdersPageState extends ConsumerState<AdminOrdersPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/admin'),
         ),
-        actions: [const LanguageButton(), const LogoutButton()],
+        actions: const [LanguageButton(), LogoutButton()],
       ),
       body: Column(
         children: [
@@ -205,6 +205,32 @@ class _AdminOrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
+            if (order.clientName != null || order.clientPhone != null) ...[
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      [
+                        if (order.clientName != null &&
+                            order.clientName!.isNotEmpty)
+                          order.clientName!,
+                        if (order.clientPhone != null &&
+                            order.clientPhone!.isNotEmpty)
+                          order.clientPhone!,
+                      ].join(' - '),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             Row(
               children: [
                 const Icon(Icons.flag, size: 14, color: AppColors.success),

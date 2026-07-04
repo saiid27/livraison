@@ -11,6 +11,7 @@ from app.models.order import Order
 from app.models.user import User
 from app.models.payment_method import PaymentMethod
 from app.models.recharge_request import RechargeRequest
+from app.models.cash_transaction import CashTransaction
 from app.utils.decorators import approved_captain_required
 from app.broadcast import compute_broadcast_state, is_in_broadcast_window
 
@@ -70,6 +71,8 @@ def accept_order(order_id):
         return jsonify({'message': 'La diffusion de cette commande est terminée'}), 400
 
     commission = (order.price or 0.0) * COMMISSION_RATE
+    if commission <= 0:
+        return jsonify({'message': 'Prix de commande invalide'}), 400
     if captain.balance < commission:
         return jsonify({
             'message': 'Solde insuffisant pour accepter cette commande',
@@ -78,12 +81,48 @@ def accept_order(order_id):
             'balance': captain.balance,
         }), 400
 
+    now = datetime.utcnow()
     captain.balance -= commission
     order.livreur_id = user_id
     order.status = 'en_cours'
+    order.commission_charged_at = now
+    order.commission_amount = commission
+    db.session.add(
+        CashTransaction(
+            transaction_type='commission',
+            amount=commission,
+            description=f'Commission 9% commande #{order.id}',
+            order=order,
+            created_at=now,
+        )
+    )
     db.session.commit()
 
     return jsonify({'order': order.to_dict(), 'message': 'Commande acceptée'}), 200
+
+
+@livreur_bp.route('/orders/<int:order_id>/pickup', methods=['POST'])
+@jwt_required()
+@approved_captain_required
+def confirm_pickup(order_id):
+    user_id = get_jwt_identity()
+    order = Order.query.filter_by(id=order_id, livreur_id=user_id).first()
+
+    if not order:
+        return jsonify({'message': 'Commande introuvable'}), 404
+    if order.status != 'en_cours':
+        return jsonify({'message': 'Cette commande n\'est pas en cours'}), 400
+    if order.picked_up_at:
+        return jsonify({'order': order.to_dict(), 'message': 'Message déjà récupéré'}), 200
+
+    now = datetime.utcnow()
+    order.picked_up_at = now
+    db.session.commit()
+
+    return jsonify({
+        'order': order.to_dict(),
+        'message': 'Message récupéré',
+    }), 200
 
 
 @livreur_bp.route('/orders/<int:order_id>/status', methods=['PUT'])
@@ -105,6 +144,8 @@ def update_status(order_id):
 
     if new_status not in allowed_transitions.get(order.status, []):
         return jsonify({'message': f'Transition invalide : {order.status} → {new_status}'}), 400
+    if new_status == 'livre' and not order.picked_up_at:
+        return jsonify({'message': 'Confirmez d\'abord la récupération du message'}), 400
 
     order.status = new_status
     db.session.commit()
@@ -122,6 +163,8 @@ def cancel_order(order_id):
         return jsonify({'message': 'Commande introuvable'}), 404
     if order.status != 'en_cours':
         return jsonify({'message': 'Seules les commandes en cours peuvent être annulées'}), 400
+    if order.picked_up_at:
+        return jsonify({'message': 'Impossible d\'annuler après récupération du message'}), 400
 
     data = request.get_json()
     reason = (data.get('reason') or '').strip()
@@ -130,6 +173,18 @@ def cancel_order(order_id):
 
     order.status = 'annule'
     order.cancellation_reason = reason
+    if order.commission_charged_at and order.commission_amount:
+        captain = User.query.get(user_id)
+        captain.balance += order.commission_amount
+        db.session.add(
+            CashTransaction(
+                transaction_type='commission_refund',
+                amount=order.commission_amount,
+                description=f'Remboursement commission commande #{order.id}',
+                order=order,
+            )
+        )
+        order.commission_charged_at = None
     db.session.commit()
     return jsonify({'order': order.to_dict(), 'message': 'Commande annulée'}), 200
 

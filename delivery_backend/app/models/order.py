@@ -13,6 +13,11 @@ class Order(db.Model):
     delivery_address = db.Column(db.String(255), nullable=False)
     service_type = db.Column(db.String(20), nullable=False, default='delivery')
     price = db.Column(db.Float, nullable=True)
+    manual_customer_name = db.Column(db.String(120), nullable=True)
+    manual_customer_phone = db.Column(db.String(20), nullable=True)
+    picked_up_at = db.Column(db.DateTime, nullable=True)
+    commission_charged_at = db.Column(db.DateTime, nullable=True)
+    commission_amount = db.Column(db.Float, nullable=True)
     status = db.Column(
         db.Enum('en_attente', 'en_cours', 'livre', 'annule', name='order_status'),
         nullable=False,
@@ -36,11 +41,17 @@ class Order(db.Model):
             'status': self.status,
             'notes': self.notes,
             'cancellation_reason': self.cancellation_reason,
+            'picked_up_at': self.picked_up_at.isoformat() if self.picked_up_at else None,
+            'commission_charged_at': self.commission_charged_at.isoformat() if self.commission_charged_at else None,
+            'commission_amount': self.commission_amount,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_users:
-            if self.client:
+            if self.manual_customer_name or self.manual_customer_phone:
+                data['client_name'] = self.manual_customer_name
+                data['client_phone'] = self.manual_customer_phone
+            elif self.client:
                 data['client_name'] = self.client.name
                 data['client_phone'] = self.client.phone
             else:

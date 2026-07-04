@@ -112,7 +112,7 @@ class _AdminCashboxPageState extends ConsumerState<AdminCashboxPage> {
                     children: [
                       Expanded(
                         child: _SummaryTile(
-                          label: isAr ? 'الشحن' : 'Recharges',
+                          label: isAr ? 'الدخل' : 'Revenus',
                           value: state.totalRecharges,
                           color: AppColors.primary,
                           icon: Icons.add_card_outlined,
@@ -290,15 +290,25 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isRecharge = transaction.type == 'recharge';
-    final color = isRecharge ? AppColors.success : AppColors.error;
+    final isExpense = transaction.type == 'expense';
+    final isCommission = transaction.type == 'commission';
+    final isRefund = transaction.type == 'commission_refund';
+    final color = (isExpense || isRefund) ? AppColors.error : AppColors.success;
     final date = DateFormat('dd/MM/yyyy HH:mm').format(transaction.createdAt);
-    final title = isRecharge
-        ? (isAr ? 'شحن' : 'Recharge')
-        : (isAr ? 'مصروف' : 'Dépense');
-    final subtitle = isRecharge
-        ? (transaction.captainName ?? transaction.description ?? '—')
-        : (transaction.description ?? '—');
+    final title = isExpense
+        ? (isAr ? 'مصروف' : 'Dépense')
+        : isRefund
+        ? (isAr ? 'إرجاع عمولة' : 'Remboursement commission')
+        : isCommission
+        ? (isAr ? 'عمولة توصيل' : 'Commission livraison')
+        : (isAr ? 'شحن' : 'Recharge');
+    final subtitle = isExpense
+        ? (transaction.description ?? '—')
+        : [
+            if (transaction.captainName != null) transaction.captainName!,
+            if (transaction.orderId != null) '#${transaction.orderId}',
+            if (transaction.description != null) transaction.description!,
+          ].join(' - ');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -306,7 +316,13 @@ class _TransactionTile extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(
-            isRecharge ? Icons.add_card_outlined : Icons.remove,
+            isExpense
+                ? Icons.remove
+                : isRefund
+                ? Icons.undo_outlined
+                : isCommission
+                ? Icons.delivery_dining_outlined
+                : Icons.add_card_outlined,
             color: color,
           ),
         ),
@@ -314,7 +330,7 @@ class _TransactionTile extends StatelessWidget {
         subtitle: Text('$subtitle\n$date'),
         isThreeLine: true,
         trailing: Text(
-          '${isRecharge ? '+' : '-'}${transaction.amount.toStringAsFixed(0)} MRU',
+          '${(isExpense || isRefund) ? '-' : '+'}${transaction.amount.toStringAsFixed(0)} MRU',
           style: TextStyle(color: color, fontWeight: FontWeight.w900),
         ),
       ),

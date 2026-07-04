@@ -187,6 +187,14 @@ class _HistoryOrderCard extends ConsumerWidget {
               color: AppColors.primary,
               text: order.description,
             ),
+            if (order.clientPhone != null && order.clientPhone!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _InfoRow(
+                icon: Icons.phone_outlined,
+                color: AppColors.success,
+                text: order.clientPhone!,
+              ),
+            ],
 
             const Divider(height: 18),
 
@@ -268,25 +276,139 @@ class _HistoryOrderCard extends ConsumerWidget {
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showCancelDialog(context, ref),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
+                child: ElevatedButton.icon(
+                  onPressed: () => order.pickedUpAt == null
+                      ? _confirmPickup(context, ref)
+                      : _confirmDelivery(context, ref),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: order.pickedUpAt == null
+                        ? AppColors.primary
+                        : AppColors.success,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  icon: Icon(
+                    order.pickedUpAt == null
+                        ? Icons.inventory_2_outlined
+                        : Icons.check_circle_outline,
+                    size: 18,
+                  ),
                   label: Text(
-                    isAr ? 'إلغاء التوصيل' : 'Annuler la livraison',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    order.pickedUpAt == null
+                        ? (isAr ? 'استلمت الرسالة' : 'Message récupéré')
+                        : (isAr ? 'تم التوصيل' : 'Livraison terminée'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
+              if (order.pickedUpAt == null) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showCancelDialog(context, ref),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: Text(
+                      isAr ? 'إلغاء التوصيل' : 'Annuler la livraison',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _confirmPickup(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(isAr ? 'تأكيد الاستلام' : 'Confirmer la récupération'),
+        content: Text(
+          isAr
+              ? 'هل أخذت الرسالة من الزبون؟ بعد التأكيد سيظهر لك زر تم التوصيل.'
+              : 'Avez-vous récupéré le message ? Le bouton de livraison apparaîtra ensuite.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(isAr ? 'لا' : 'Non'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: Text(isAr ? 'نعم، استلمت' : 'Oui, récupéré'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    final error = await ref
+        .read(livreurProvider.notifier)
+        .confirmPickup(order.id);
+    if (!context.mounted) return;
+    final message = error == null
+        ? (isAr ? 'تم تأكيد الاستلام' : 'Récupération confirmée')
+        : error == 'insufficient_balance'
+        ? (isAr
+              ? 'رصيدك غير كافٍ لاستلام الرسالة'
+              : 'Solde insuffisant pour récupérer le message')
+        : error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: error == null ? AppColors.success : AppColors.error,
+      ),
+    );
+  }
+
+  Future<void> _confirmDelivery(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(isAr ? 'تأكيد التوصيل' : 'Confirmer la livraison'),
+        content: Text(
+          isAr
+              ? 'هل وصلت الرسالة للزبون؟ عند التأكيد ينتهي الطلب ويختفي من الطلبات الجارية.'
+              : 'Le message a-t-il été livré ? La commande sera terminée.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(isAr ? 'لا' : 'Non'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: Text(isAr ? 'نعم، تم التوصيل' : 'Oui, livré'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    final success = await ref
+        .read(livreurProvider.notifier)
+        .updateStatus(order.id, 'livre');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? (isAr ? 'تم إنهاء الطلب' : 'Commande terminée')
+              : (isAr ? 'حدث خطأ' : 'Une erreur est survenue'),
+        ),
+        backgroundColor: success ? AppColors.success : AppColors.error,
       ),
     );
   }
@@ -417,7 +539,12 @@ class _HistoryOrderCard extends ConsumerWidget {
   }
 
   (String, Color) _statusInfo(String status) => switch (status) {
-    'en_cours' => (isAr ? 'جارٍ' : 'En cours', AppColors.primary),
+    'en_cours' => (
+      order.pickedUpAt == null
+          ? (isAr ? 'بانتظار الاستلام' : 'À récupérer')
+          : (isAr ? 'بانتظار التوصيل' : 'À livrer'),
+      AppColors.primary,
+    ),
     'livre' => (isAr ? 'مُوصَّل' : 'Livré', AppColors.success),
     'annule' => (isAr ? 'ملغي' : 'Annulé', AppColors.error),
     _ => (status, AppColors.textSecondary),
