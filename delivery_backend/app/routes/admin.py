@@ -214,6 +214,61 @@ def create_admin_account():
     return jsonify({'user': admin.to_dict(), 'message': 'تم إنشاء حساب الأدمن'}), 201
 
 
+@admin_bp.route('/admin-accounts/<int:user_id>', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+def update_admin_account(user_id):
+    if not _current_developer():
+        return jsonify({'message': 'Accès réservé au développeur'}), 403
+
+    admin = User.query.filter_by(id=user_id, role='admin').first()
+    if not admin:
+        return jsonify({'message': 'حساب الأدمن غير موجود'}), 404
+
+    data = request.get_json(silent=True) or {}
+    if 'is_developer' not in data:
+        return jsonify({'message': 'لا توجد صلاحية لتعديلها'}), 400
+
+    is_developer = bool(data.get('is_developer'))
+    if admin.is_developer and not is_developer:
+        developers_count = User.query.filter_by(
+            role='admin',
+            is_developer=True,
+        ).count()
+        if developers_count <= 1:
+            return jsonify({'message': 'لا يمكن إزالة آخر حساب ديفلوبر'}), 400
+
+    admin.is_developer = is_developer
+    db.session.commit()
+    return jsonify({'user': admin.to_dict(), 'message': 'تم تحديث الصلاحية'}), 200
+
+
+@admin_bp.route('/admin-accounts/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+@role_required('admin')
+def delete_admin_account(user_id):
+    current_developer = _current_developer()
+    if not current_developer:
+        return jsonify({'message': 'Accès réservé au développeur'}), 403
+
+    admin = User.query.filter_by(id=user_id, role='admin').first()
+    if not admin:
+        return jsonify({'message': 'حساب الأدمن غير موجود'}), 404
+    if admin.id == current_developer.id:
+        return jsonify({'message': 'لا يمكنك حذف حسابك الحالي'}), 400
+    if admin.is_developer:
+        developers_count = User.query.filter_by(
+            role='admin',
+            is_developer=True,
+        ).count()
+        if developers_count <= 1:
+            return jsonify({'message': 'لا يمكن حذف آخر حساب ديفلوبر'}), 400
+
+    db.session.delete(admin)
+    db.session.commit()
+    return jsonify({'message': 'تم حذف الحساب'}), 200
+
+
 @admin_bp.route('/captains', methods=['GET'])
 @jwt_required()
 @role_required('admin')

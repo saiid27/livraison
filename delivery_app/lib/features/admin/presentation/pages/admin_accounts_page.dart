@@ -212,6 +212,89 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
     }
   }
 
+  Future<String?> _updateDeveloperAccess(UserModel admin, bool value) async {
+    try {
+      await ApiClient.instance.put(
+        '/admin/admin-accounts/${admin.id}',
+        data: {'is_developer': value},
+      );
+      return null;
+    } on DioException catch (error) {
+      if (error.response?.data is Map) {
+        return error.response?.data['message']?.toString();
+      }
+      return 'Erreur';
+    }
+  }
+
+  Future<String?> _deleteAdmin(UserModel admin) async {
+    try {
+      await ApiClient.instance.delete('/admin/admin-accounts/${admin.id}');
+      return null;
+    } on DioException catch (error) {
+      if (error.response?.data is Map) {
+        return error.response?.data['message']?.toString();
+      }
+      return 'Erreur';
+    }
+  }
+
+  Future<void> _toggleDeveloper(UserModel admin, bool isAr) async {
+    final makeDeveloper = !admin.isDeveloper;
+    final error = await _updateDeveloperAccess(admin, makeDeveloper);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ??
+              (makeDeveloper
+                  ? (isAr ? 'تم تحويله إلى ديفلوبر' : 'Accès développeur donné')
+                  : (isAr ? 'تم تحويله إلى أدمن' : 'Converti en admin')),
+        ),
+        backgroundColor: error == null ? AppColors.success : AppColors.error,
+      ),
+    );
+    if (error == null) await _refresh();
+  }
+
+  Future<void> _confirmDelete(UserModel admin, bool isAr) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isAr ? 'حذف الحساب' : 'Supprimer le compte'),
+        content: Text(
+          isAr
+              ? 'هل تريد حذف حساب ${admin.name}؟'
+              : 'Supprimer le compte ${admin.name} ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(isAr ? 'إلغاء' : 'Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              isAr ? 'حذف' : 'Supprimer',
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    final error = await _deleteAdmin(admin);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ?? (isAr ? 'تم حذف الحساب' : 'Compte supprimé')),
+        backgroundColor: error == null ? AppColors.success : AppColors.error,
+      ),
+    );
+    if (error == null) await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
@@ -282,28 +365,61 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
                       admin.name,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
-                    subtitle: Text('${admin.phone}\n${admin.email}'),
+                    subtitle: Text(
+                      '${admin.phone}\n${admin.email}\n${admin.isDeveloper ? (isAr ? 'ديفلوبر' : 'Développeur') : (isAr ? 'أدمن' : 'Admin')}',
+                    ),
                     isThreeLine: true,
-                    trailing: admin.isDeveloper
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              isAr ? 'ديفلوبر' : 'Dév',
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'toggle') {
+                          _toggleDeveloper(admin, isAr);
+                        } else if (value == 'delete') {
+                          _confirmDelete(admin, isAr);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Row(
+                            children: [
+                              Icon(
+                                admin.isDeveloper
+                                    ? Icons.manage_accounts_outlined
+                                    : Icons.admin_panel_settings_outlined,
+                                size: 18,
                               ),
-                            ),
-                          )
-                        : null,
+                              const SizedBox(width: 8),
+                              Text(
+                                admin.isDeveloper
+                                    ? (isAr
+                                          ? 'تحويل إلى أدمن'
+                                          : 'Convertir en admin')
+                                    : (isAr
+                                          ? 'تحويل إلى ديفلوبر'
+                                          : 'Convertir en développeur'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: AppColors.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isAr ? 'حذف' : 'Supprimer',
+                                style: const TextStyle(color: AppColors.error),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
