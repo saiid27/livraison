@@ -5,13 +5,26 @@ import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/language_button.dart';
 import '../../../../core/widgets/logout_button.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
-class AdminHomePage extends ConsumerWidget {
+class AdminHomePage extends ConsumerStatefulWidget {
   const AdminHomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminHomePage> createState() => _AdminHomePageState();
+}
+
+class _AdminHomePageState extends ConsumerState<AdminHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(authProvider.notifier).refreshProfile());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
+    final currentUser = ref.watch(authProvider).user;
     final items = [
       _AdminItem(
         isAr ? 'طلبات إنشاء الحساب' : 'Demandes de comptes',
@@ -25,6 +38,13 @@ class AdminHomePage extends ConsumerWidget {
         AppColors.success,
         () => context.go('/admin/cashbox'),
       ),
+      if (currentUser?.isDeveloper == true)
+        _AdminItem(
+          isAr ? 'حسابات الأدمن' : 'Comptes admin',
+          Icons.manage_accounts_outlined,
+          Colors.blueGrey,
+          () => context.go('/admin/admin-accounts'),
+        ),
       _AdminItem(
         isAr ? 'طلبات شحن' : 'Demandes de recharge',
         Icons.add_card_outlined,

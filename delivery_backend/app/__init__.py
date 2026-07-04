@@ -134,6 +134,7 @@ def create_app():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code_expires_at TIMESTAMP",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_requested_at TIMESTAMP",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_verified_at TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_developer BOOLEAN NOT NULL DEFAULT FALSE",
             "ALTER TABLE orders ALTER COLUMN price DROP NOT NULL",
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_type VARCHAR(20) NOT NULL DEFAULT 'delivery'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS balance FLOAT NOT NULL DEFAULT 0",
@@ -149,6 +150,22 @@ def create_app():
             "ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS logo VARCHAR(255)",
         ):
             db.session.execute(text(statement))
+        db.session.execute(text("""
+            UPDATE users
+            SET is_developer = TRUE
+            WHERE role = 'admin'
+            AND id = (
+                SELECT id FROM users
+                WHERE role = 'admin'
+                ORDER BY id ASC
+                LIMIT 1
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM users
+                WHERE role = 'admin'
+                AND is_developer = TRUE
+            )
+        """))
         db.session.commit()
 
     return app

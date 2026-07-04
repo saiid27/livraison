@@ -15,6 +15,7 @@ class UserModel extends User {
     super.permitImage,
     super.merchantContactPhone,
     super.merchantPaymentPhone,
+    super.isDeveloper,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +33,7 @@ class UserModel extends User {
       permitImage: json['permit_image'],
       merchantContactPhone: json['merchant_contact_phone'],
       merchantPaymentPhone: json['merchant_payment_phone'],
+      isDeveloper: json['is_developer'] == true,
     );
   }
 
@@ -49,5 +51,6 @@ class UserModel extends User {
     'permit_image': permitImage,
     'merchant_contact_phone': merchantContactPhone,
     'merchant_payment_phone': merchantPaymentPhone,
+    'is_developer': isDeveloper,
   };
 }

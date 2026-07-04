@@ -26,6 +26,7 @@ class User(db.Model):
     otp_requested_at = db.Column(db.DateTime, nullable=True)
     otp_verified_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    is_developer = db.Column(db.Boolean, nullable=False, default=False)
     balance = db.Column(db.Float, nullable=False, default=0.0)
     vehicle_type = db.Column(db.String(10), nullable=False, default='moto')
     merchant_contact_phone = db.Column(db.String(20), nullable=True)
@@ -50,6 +51,7 @@ class User(db.Model):
             'permit_image': self.permit_image,
             'approval_status': self.approval_status,
             'is_active': self.is_active,
+            'is_developer': self.is_developer,
             'balance': self.balance,
             'vehicle_type': self.vehicle_type,
             'merchant_contact_phone': self.merchant_contact_phone,

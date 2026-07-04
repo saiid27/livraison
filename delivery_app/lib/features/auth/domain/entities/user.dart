@@ -12,6 +12,7 @@ class User {
   final String? permitImage;
   final String? merchantContactPhone;
   final String? merchantPaymentPhone;
+  final bool isDeveloper;
 
   const User({
     required this.id,
@@ -27,5 +28,6 @@ class User {
     this.permitImage,
     this.merchantContactPhone,
     this.merchantPaymentPhone,
+    this.isDeveloper = false,
   });
 }

@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from pathlib import Path
 from uuid import uuid4
 from werkzeug.utils import secure_filename
 import os
 
-from app import db
+from app import bcrypt, db
 from app.models.order import Order
 from app.models.user import User
 from app.models.payment_method import PaymentMethod
@@ -68,6 +68,13 @@ def _ensure_recharge_cash_transactions():
                     created_at=req.updated_at or req.created_at,
                 )
             )
+
+
+def _current_developer():
+    user = User.query.get(get_jwt_identity())
+    if not user or user.role != 'admin' or not user.is_developer:
+        return None
+    return user
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -152,6 +159,58 @@ def toggle_user(user_id):
     db.session.commit()
     action = 'activé' if user.is_active else 'désactivé'
     return jsonify({'user': user.to_dict(), 'message': f'Utilisateur {action}'}), 200
+
+
+@admin_bp.route('/admin-accounts', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def list_admin_accounts():
+    if not _current_developer():
+        return jsonify({'message': 'Accès réservé au développeur'}), 403
+
+    admins = User.query.filter_by(role='admin').order_by(
+        User.created_at.desc(),
+    ).all()
+    return jsonify({'users': [admin.to_dict() for admin in admins]}), 200
+
+
+@admin_bp.route('/admin-accounts', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+def create_admin_account():
+    if not _current_developer():
+        return jsonify({'message': 'Accès réservé au développeur'}), 403
+
+    data = request.get_json(silent=True) or {}
+    name = str(data.get('name') or '').strip()
+    phone = str(data.get('phone') or '').strip()
+    password = str(data.get('password') or '').strip()
+    email = str(data.get('email') or '').strip().lower()
+
+    if not name or not phone or not password:
+        return jsonify({'message': 'الاسم ورقم الهاتف وكلمة المرور مطلوبة'}), 400
+    if len(password) < 6:
+        return jsonify({'message': 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'}), 400
+    if User.query.filter_by(phone=phone).first():
+        return jsonify({'message': 'رقم الهاتف مستخدم بالفعل'}), 409
+
+    if not email:
+        email = f'admin.{phone}@mayahsar.local'
+    if User.query.filter(db.func.lower(User.email) == email).first():
+        return jsonify({'message': 'البريد الإلكتروني مستخدم بالفعل'}), 409
+
+    admin = User(
+        name=name,
+        email=email,
+        phone=phone,
+        password_hash=bcrypt.generate_password_hash(password).decode('utf-8'),
+        role='admin',
+        approval_status='approved',
+        is_developer=False,
+    )
+    db.session.add(admin)
+    db.session.commit()
+    return jsonify({'user': admin.to_dict(), 'message': 'تم إنشاء حساب الأدمن'}), 201
 
 
 @admin_bp.route('/captains', methods=['GET'])
