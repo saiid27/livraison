@@ -47,8 +47,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     final isAr = ref.read(localeProvider).languageCode == 'ar';
-    if ((_selectedRole == AppConstants.roleLivreur ||
-            _selectedRole == AppConstants.roleCarCaptain) &&
+    if (_selectedRole == AppConstants.roleLivreur &&
         _captainDocuments.length != 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -90,7 +89,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       final route = switch (_selectedRole) {
         AppConstants.roleClient => '/client',
         AppConstants.roleLivreur => '/captain-pending',
-        AppConstants.roleCarCaptain => '/captain-pending',
         AppConstants.roleMerchant => '/merchant',
         _ => '/login',
       };
@@ -176,14 +174,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       ),
                     ),
                     _RoleCard(
-                      title: isAr ? 'كابتن سيارة' : 'Capitaine voiture',
-                      icon: Icons.directions_car_outlined,
-                      selected: _selectedRole == AppConstants.roleCarCaptain,
-                      onTap: () => setState(
-                        () => _selectedRole = AppConstants.roleCarCaptain,
-                      ),
-                    ),
-                    _RoleCard(
                       title: isAr ? 'تاجر' : 'Commerçant',
                       icon: Icons.storefront_outlined,
                       selected: _selectedRole == AppConstants.roleMerchant,
@@ -239,12 +229,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     return null;
                   },
                 ),
-                if (_selectedRole == AppConstants.roleLivreur ||
-                    _selectedRole == AppConstants.roleCarCaptain) ...[
+                if (_selectedRole == AppConstants.roleLivreur) ...[
                   const SizedBox(height: 24),
                   _CaptainDocuments(
                     isArabic: isAr,
-                    isCarCaptain: _selectedRole == AppConstants.roleCarCaptain,
                     selected: _captainDocuments,
                     onPick: _pickDocument,
                   ),
@@ -311,13 +299,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
 class _CaptainDocuments extends StatelessWidget {
   final bool isArabic;
-  final bool isCarCaptain;
   final Map<String, XFile> selected;
   final ValueChanged<String> onPick;
 
   const _CaptainDocuments({
     required this.isArabic,
-    required this.isCarCaptain,
     required this.selected,
     required this.onPick,
   });
@@ -337,18 +323,12 @@ class _CaptainDocuments extends StatelessWidget {
       ),
       (
         'vehicle_image',
-        isCarCaptain
-            ? (isArabic ? 'صورة السيارة' : 'Photo de la voiture')
-            : (isArabic ? 'صورة الدراجة' : 'Photo de la moto'),
-        isCarCaptain
-            ? Icons.directions_car_outlined
-            : Icons.two_wheeler_outlined,
+        isArabic ? 'صورة الدراجة' : 'Photo de la moto',
+        Icons.two_wheeler_outlined,
       ),
       (
         'vehicle_registration_image',
-        isCarCaptain
-            ? (isArabic ? 'تسجيل السيارة' : 'Carte grise voiture')
-            : (isArabic ? 'تسجيل الدراجة' : 'Carte grise'),
+        isArabic ? 'تسجيل الدراجة' : 'Carte grise',
         Icons.description_outlined,
       ),
       (

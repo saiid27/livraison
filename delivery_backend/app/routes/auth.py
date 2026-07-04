@@ -261,7 +261,7 @@ def register():
     if not all(k in data for k in required):
         return jsonify({'message': 'Champs manquants'}), 400
 
-    if data['role'] not in ('client', 'livreur', 'car_captain', 'merchant'):
+    if data['role'] not in ('client', 'livreur', 'merchant'):
         return jsonify({'message': 'Rôle invalide'}), 400
 
     phone = str(data['phone']).strip()
