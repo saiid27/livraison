@@ -216,19 +216,6 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
     final user = ref.watch(authProvider).user;
     final state = ref.watch(livreurProvider);
 
-    void comingSoon() {
-      Navigator.of(context).maybePop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isAr
-                ? 'سيتم تفعيل هذا القسم لاحقًا'
-                : 'Section disponible prochainement',
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       key: _scaffoldKey,
       drawer: _CaptainDrawer(
@@ -250,7 +237,6 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
           Navigator.of(context).pop();
           context.go('${widget.baseRoute}/history');
         },
-        onComingSoon: comingSoon,
       ),
       appBar: AppBar(
         leading: IconButton(
@@ -614,7 +600,6 @@ class _CaptainDrawer extends StatelessWidget {
   final VoidCallback onProfile;
   final VoidCallback onWallet;
   final VoidCallback onHistory;
-  final VoidCallback onComingSoon;
 
   const _CaptainDrawer({
     required this.isArabic,
@@ -624,7 +609,6 @@ class _CaptainDrawer extends StatelessWidget {
     required this.onProfile,
     required this.onWallet,
     required this.onHistory,
-    required this.onComingSoon,
   });
 
   @override
@@ -644,11 +628,6 @@ class _CaptainDrawer extends StatelessWidget {
         isArabic ? 'سجل الطلبات' : 'Historique des demandes',
         Icons.history_rounded,
         onHistory,
-      ),
-      _CaptainMenuItem(
-        isArabic ? 'سجل الرسائل' : 'Messages',
-        Icons.chat_bubble_outline_rounded,
-        onComingSoon,
       ),
     ];
 
