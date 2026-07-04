@@ -196,14 +196,16 @@ class _AdminProfileDetailPageState
                   isAr: isAr,
                 ),
                 const SizedBox(height: 14),
-                if (_isCaptain)
+                if (_isCaptain) ...[
+                  _CaptainDocumentsSection(user: user, isAr: isAr),
+                  const SizedBox(height: 14),
                   _CaptainOrdersSection(
                     orders: ((data['orders'] ?? []) as List)
                         .map((order) => OrderModel.fromJson(order))
                         .toList(),
                     isAr: isAr,
-                  )
-                else ...[
+                  ),
+                ] else ...[
                   _MerchantProductsSection(
                     products: ((data['products'] ?? []) as List)
                         .map((item) => Map<String, dynamic>.from(item))
@@ -407,6 +409,167 @@ class _CaptainOrdersSection extends StatelessWidget {
               : Icons.delivery_dining_outlined,
         );
       }).toList(),
+    );
+  }
+}
+
+class _CaptainDocumentsSection extends StatelessWidget {
+  final UserModel user;
+  final bool isAr;
+
+  const _CaptainDocumentsSection({required this.user, required this.isAr});
+
+  @override
+  Widget build(BuildContext context) {
+    final documents = [
+      (
+        title: isAr ? 'الصورة الشخصية' : 'Photo personnelle',
+        path: user.avatar,
+        icon: Icons.person_outline,
+      ),
+      (
+        title: isAr ? 'بطاقة التعريف' : 'Carte d’identité',
+        path: user.idCardImage,
+        icon: Icons.badge_outlined,
+      ),
+      (
+        title: isAr ? 'صورة الموتو' : 'Photo moto',
+        path: user.vehicleImage,
+        icon: Icons.two_wheeler_outlined,
+      ),
+      (
+        title: isAr ? 'ترخيص المركبة' : 'Immatriculation',
+        path: user.vehicleRegistrationImage,
+        icon: Icons.description_outlined,
+      ),
+      (
+        title: isAr ? 'صورة التصريح' : 'Permis',
+        path: user.permitImage,
+        icon: Icons.assignment_ind_outlined,
+      ),
+    ];
+
+    return _Section(
+      title: isAr ? 'صور الكابتن المرفوعة' : 'Documents du capitaine',
+      empty: isAr ? 'لا توجد صور مرفوعة' : 'Aucune image',
+      children: documents
+          .map(
+            (document) => _DocumentReviewCard(
+              title: document.title,
+              path: document.path,
+              icon: document.icon,
+              isAr: isAr,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _DocumentReviewCard extends StatelessWidget {
+  final String title;
+  final String? path;
+  final IconData icon;
+  final bool isAr;
+
+  const _DocumentReviewCard({
+    required this.title,
+    required this.path,
+    required this.icon,
+    required this.isAr,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final url = _imageUrl(path);
+    final hasImage = url != null;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        onTap: hasImage ? () => _openPreview(context, url) : null,
+        leading: _DocumentThumb(url: url, icon: icon),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text(
+          hasImage
+              ? (isAr ? 'اضغط لمراجعة الصورة' : 'Toucher pour vérifier')
+              : (isAr ? 'لا توجد صورة محفوظة' : 'Aucune image enregistrée'),
+        ),
+        trailing: hasImage ? const Icon(Icons.visibility_outlined) : null,
+      ),
+    );
+  }
+
+  void _openPreview(BuildContext context, String url) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: InteractiveViewer(
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      isAr
+                          ? 'الصورة غير متوفرة على السيرفر'
+                          : 'Image indisponible sur le serveur',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentThumb extends StatelessWidget {
+  final String? url;
+  final IconData icon;
+
+  const _DocumentThumb({required this.url, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null) return _IconBox(icon: icon);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url!,
+        width: 58,
+        height: 58,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _IconBox(icon: icon),
+      ),
     );
   }
 }

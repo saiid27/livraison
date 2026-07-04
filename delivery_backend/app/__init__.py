@@ -97,6 +97,7 @@ def create_app():
         from app.models.merchant_order import MerchantOrder  # noqa: F401
         from app.models.merchant_payment_method import MerchantPaymentMethod  # noqa: F401
         from app.models.cash_transaction import CashTransaction  # noqa: F401
+        from app.models.user import User
 
         enum_exists = db.session.execute(
             text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')")
@@ -129,6 +130,16 @@ def create_app():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_image VARCHAR(255)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_registration_image VARCHAR(255)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permit_image VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_data BYTEA",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_mime VARCHAR(60)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_card_image_data BYTEA",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS id_card_image_mime VARCHAR(60)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_image_data BYTEA",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_image_mime VARCHAR(60)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_registration_image_data BYTEA",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS vehicle_registration_image_mime VARCHAR(60)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS permit_image_data BYTEA",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS permit_image_mime VARCHAR(60)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) NOT NULL DEFAULT 'approved'",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code VARCHAR(6)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code_expires_at TIMESTAMP",
@@ -169,9 +180,52 @@ def create_app():
             AND NOT EXISTS (
                 SELECT 1 FROM users
                 WHERE role = 'admin'
-                AND is_developer = TRUE
+            AND is_developer = TRUE
             )
         """))
+        image_fields = {
+            'avatar': ('avatar_data', 'avatar_mime'),
+            'id_card_image': ('id_card_image_data', 'id_card_image_mime'),
+            'vehicle_image': ('vehicle_image_data', 'vehicle_image_mime'),
+            'vehicle_registration_image': (
+                'vehicle_registration_image_data',
+                'vehicle_registration_image_mime',
+            ),
+            'permit_image': ('permit_image_data', 'permit_image_mime'),
+        }
+        image_mimes = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+        }
+        captains = User.query.filter(
+            User.role.in_(('livreur', 'car_captain'))
+        ).all()
+        for captain in captains:
+            for path_attr, (data_attr, mime_attr) in image_fields.items():
+                if getattr(captain, data_attr):
+                    continue
+                image_path = getattr(captain, path_attr)
+                if not image_path or image_path.startswith('/api/auth/images/'):
+                    continue
+                if not image_path.startswith('/uploads/'):
+                    continue
+                local_path = os.path.join(
+                    app.config['UPLOAD_FOLDER'],
+                    image_path.removeprefix('/uploads/'),
+                )
+                if not os.path.exists(local_path):
+                    continue
+                with open(local_path, 'rb') as image_file:
+                    setattr(captain, data_attr, image_file.read())
+                ext = os.path.splitext(local_path)[1].lower()
+                setattr(captain, mime_attr, image_mimes.get(ext, 'image/jpeg'))
+                setattr(
+                    captain,
+                    path_attr,
+                    f'/api/auth/images/{captain.id}/{path_attr}',
+                )
         db.session.commit()
 
     return app

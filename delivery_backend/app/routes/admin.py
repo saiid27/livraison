@@ -423,11 +423,11 @@ def update_captain_approval(user_id):
         return jsonify({'message': 'Statut de validation invalide'}), 400
     if status == 'approved':
         required_images = [
-            captain.avatar,
-            captain.id_card_image,
-            captain.vehicle_image,
-            captain.vehicle_registration_image,
-            captain.permit_image,
+            captain.avatar or captain.avatar_data,
+            captain.id_card_image or captain.id_card_image_data,
+            captain.vehicle_image or captain.vehicle_image_data,
+            captain.vehicle_registration_image or captain.vehicle_registration_image_data,
+            captain.permit_image or captain.permit_image_data,
         ]
         if any(not image for image in required_images):
             return jsonify({'message': 'لا يمكن قبول الكابتن قبل رفع جميع الصور'}), 400

@@ -20,6 +20,16 @@ class User(db.Model):
     vehicle_image = db.Column(db.String(255), nullable=True)
     vehicle_registration_image = db.Column(db.String(255), nullable=True)
     permit_image = db.Column(db.String(255), nullable=True)
+    avatar_data = db.Column(db.LargeBinary, nullable=True)
+    avatar_mime = db.Column(db.String(60), nullable=True)
+    id_card_image_data = db.Column(db.LargeBinary, nullable=True)
+    id_card_image_mime = db.Column(db.String(60), nullable=True)
+    vehicle_image_data = db.Column(db.LargeBinary, nullable=True)
+    vehicle_image_mime = db.Column(db.String(60), nullable=True)
+    vehicle_registration_image_data = db.Column(db.LargeBinary, nullable=True)
+    vehicle_registration_image_mime = db.Column(db.String(60), nullable=True)
+    permit_image_data = db.Column(db.LargeBinary, nullable=True)
+    permit_image_mime = db.Column(db.String(60), nullable=True)
     approval_status = db.Column(db.String(20), nullable=False, default='approved')
     reset_code = db.Column(db.String(6), nullable=True)
     reset_code_expires_at = db.Column(db.DateTime, nullable=True)
@@ -37,6 +47,11 @@ class User(db.Model):
     client_orders = db.relationship('Order', foreign_keys='Order.client_id', backref='client', lazy=True)
     livreur_orders = db.relationship('Order', foreign_keys='Order.livreur_id', backref='livreur', lazy=True)
 
+    def _image_value(self, field, fallback, data):
+        if data:
+            return f'/api/auth/images/{self.id}/{field}'
+        return fallback
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -44,11 +59,11 @@ class User(db.Model):
             'email': self.email,
             'phone': self.phone,
             'role': self.role,
-            'avatar': self.avatar,
-            'id_card_image': self.id_card_image,
-            'vehicle_image': self.vehicle_image,
-            'vehicle_registration_image': self.vehicle_registration_image,
-            'permit_image': self.permit_image,
+            'avatar': self._image_value('avatar', self.avatar, self.avatar_data),
+            'id_card_image': self._image_value('id_card_image', self.id_card_image, self.id_card_image_data),
+            'vehicle_image': self._image_value('vehicle_image', self.vehicle_image, self.vehicle_image_data),
+            'vehicle_registration_image': self._image_value('vehicle_registration_image', self.vehicle_registration_image, self.vehicle_registration_image_data),
+            'permit_image': self._image_value('permit_image', self.permit_image, self.permit_image_data),
             'approval_status': self.approval_status,
             'is_active': self.is_active,
             'is_developer': self.is_developer,

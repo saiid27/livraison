@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db, bcrypt
 from app.models.user import User
@@ -10,17 +10,40 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from io import BytesIO
 import json
 import os
 
 auth_bp = Blueprint('auth', __name__)
 
 CAPTAIN_FILES = {
-    'profile_image': 'avatar',
-    'id_card_image': 'id_card_image',
-    'vehicle_image': 'vehicle_image',
-    'vehicle_registration_image': 'vehicle_registration_image',
-    'permit_image': 'permit_image',
+    'profile_image': ('avatar', 'avatar_data', 'avatar_mime'),
+    'id_card_image': ('id_card_image', 'id_card_image_data', 'id_card_image_mime'),
+    'vehicle_image': ('vehicle_image', 'vehicle_image_data', 'vehicle_image_mime'),
+    'vehicle_registration_image': (
+        'vehicle_registration_image',
+        'vehicle_registration_image_data',
+        'vehicle_registration_image_mime',
+    ),
+    'permit_image': ('permit_image', 'permit_image_data', 'permit_image_mime'),
+}
+
+IMAGE_FIELDS = {
+    'avatar': ('avatar_data', 'avatar_mime'),
+    'id_card_image': ('id_card_image_data', 'id_card_image_mime'),
+    'vehicle_image': ('vehicle_image_data', 'vehicle_image_mime'),
+    'vehicle_registration_image': (
+        'vehicle_registration_image_data',
+        'vehicle_registration_image_mime',
+    ),
+    'permit_image': ('permit_image_data', 'permit_image_mime'),
+}
+
+IMAGE_MIME_BY_EXTENSION = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
 }
 
 CHINGUISOFT_TIMEOUT_SECONDS = 12
@@ -180,9 +203,43 @@ def _save_upload(upload, category):
     return f'/uploads/{relative_dir}/{filename}'
 
 
+def _read_upload_image(upload):
+    original = secure_filename(upload.filename or '')
+    extension = Path(original).suffix.lower()
+    mime_type = IMAGE_MIME_BY_EXTENSION.get(extension)
+    if not mime_type:
+        raise ValueError('Format image non pris en charge')
+
+    image_data = upload.read()
+    if not image_data:
+        raise ValueError('Image vide')
+    return image_data, mime_type
+
+
 def _generated_email(phone):
     digits = ''.join(ch for ch in phone if ch.isdigit())
     return f'{digits or uuid4().hex}@phone.mayahsar.local'
+
+
+@auth_bp.route('/images/<int:user_id>/<field>', methods=['GET'])
+def user_image(user_id, field):
+    if field not in IMAGE_FIELDS:
+        return jsonify({'message': 'Image introuvable'}), 404
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'message': 'Utilisateur introuvable'}), 404
+
+    data_attr, mime_attr = IMAGE_FIELDS[field]
+    image_data = getattr(user, data_attr)
+    if not image_data:
+        return jsonify({'message': 'Image introuvable'}), 404
+
+    return send_file(
+        BytesIO(image_data),
+        mimetype=getattr(user, mime_attr) or 'image/jpeg',
+        max_age=86400,
+    )
 
 
 @auth_bp.route('/request-otp', methods=['POST'])
@@ -280,8 +337,11 @@ def register():
         if missing_files:
             return jsonify({'message': 'Toutes les photos du capitaine sont obligatoires'}), 400
         try:
-            for form_key, model_key in CAPTAIN_FILES.items():
-                captain_images[model_key] = _save_upload(request.files[form_key], form_key)
+            for form_key, (path_key, data_key, mime_key) in CAPTAIN_FILES.items():
+                image_data, mime_type = _read_upload_image(request.files[form_key])
+                captain_images[path_key] = 'stored_in_database'
+                captain_images[data_key] = image_data
+                captain_images[mime_key] = mime_type
         except ValueError as error:
             return jsonify({'message': str(error)}), 400
 
@@ -309,6 +369,10 @@ def register():
         **merchant_images,
     )
     db.session.add(user)
+    db.session.flush()
+    if data['role'] in ('livreur', 'car_captain'):
+        for _, (path_key, _, _) in CAPTAIN_FILES.items():
+            setattr(user, path_key, f'/api/auth/images/{user.id}/{path_key}')
     db.session.commit()
 
     token = create_access_token(identity=str(user.id))
