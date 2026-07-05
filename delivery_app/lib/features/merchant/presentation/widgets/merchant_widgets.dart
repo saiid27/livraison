@@ -20,7 +20,7 @@ class ProductImage extends StatelessWidget {
             : Image.network(
                 url!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (context, error, stackTrace) =>
                     const Icon(Icons.broken_image_outlined),
               ),
       ),

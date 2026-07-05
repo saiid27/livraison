@@ -20,8 +20,8 @@ class ClientOrderSearchPage extends ConsumerStatefulWidget {
       _ClientOrderSearchPageState();
 }
 
-class _ClientOrderSearchPageState
-    extends ConsumerState<ClientOrderSearchPage> with TickerProviderStateMixin {
+class _ClientOrderSearchPageState extends ConsumerState<ClientOrderSearchPage>
+    with TickerProviderStateMixin {
   Timer? _pollTimer;
   late AnimationController _pulseController;
 
@@ -45,7 +45,10 @@ class _ClientOrderSearchPageState
     )..repeat(reverse: true);
 
     _pollOrder();
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _pollOrder());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _pollOrder(),
+    );
   }
 
   @override
@@ -57,8 +60,9 @@ class _ClientOrderSearchPageState
 
   Future<void> _pollOrder() async {
     try {
-      final response = await ApiClient.instance
-          .get('/client/orders/${widget.orderId}');
+      final response = await ApiClient.instance.get(
+        '/client/orders/${widget.orderId}',
+      );
       final data = response.data['order'] as Map<String, dynamic>;
       final status = data['status'] as String;
 
@@ -158,7 +162,7 @@ class _SearchingView extends StatelessWidget {
         Center(
           child: AnimatedBuilder(
             animation: pulseController,
-            builder: (_, __) {
+            builder: (context, child) {
               final scale = 0.85 + pulseController.value * 0.15;
               return Transform.scale(
                 scale: scale,
@@ -176,9 +180,7 @@ class _SearchingView extends StatelessWidget {
                         ? Icons.delivery_dining_rounded
                         : Icons.pause_circle_outline_rounded,
                     size: 64,
-                    color: broadcasting
-                        ? AppColors.primary
-                        : AppColors.warning,
+                    color: broadcasting ? AppColors.primary : AppColors.warning,
                   ),
                 ),
               );
@@ -189,10 +191,12 @@ class _SearchingView extends StatelessWidget {
 
         Text(
           broadcasting
-              ? (isAr ? 'جارٍ البحث عن كابتن...' : 'Recherche d\'un capitaine...')
+              ? (isAr
+                    ? 'جارٍ البحث عن كابتن...'
+                    : 'Recherche d\'un capitaine...')
               : (isAr
-                  ? 'توقف مؤقت قبل المحاولة التالية'
-                  : 'Pause avant la prochaine tentative'),
+                    ? 'توقف مؤقت قبل المحاولة التالية'
+                    : 'Pause avant la prochaine tentative'),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 20,
@@ -208,10 +212,7 @@ class _SearchingView extends StatelessWidget {
               ? 'المحاولة $attempt من $_maxAttempts'
               : 'Tentative $attempt / $_maxAttempts',
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         const SizedBox(height: 24),
 

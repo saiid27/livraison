@@ -31,7 +31,8 @@ class _AdminRechargeRequestsPageState
     super.initState();
     _tab = TabController(length: _tabs.length, vsync: this);
     Future.microtask(
-        () => ref.read(adminRechargeProvider.notifier).loadRequests());
+      () => ref.read(adminRechargeProvider.notifier).loadRequests(),
+    );
   }
 
   @override
@@ -99,10 +100,8 @@ class _AdminRechargeRequestsPageState
             child: ListView.builder(
               padding: const EdgeInsets.all(14),
               itemCount: filtered.length,
-              itemBuilder: (_, i) => _RequestCard(
-                request: filtered[i],
-                isAr: isAr,
-              ),
+              itemBuilder: (_, i) =>
+                  _RequestCard(request: filtered[i], isAr: isAr),
             ),
           );
         }).toList(),
@@ -205,7 +204,7 @@ class _RequestCard extends ConsumerWidget {
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       height: 80,
                       color: AppColors.surface,
                       child: const Center(
@@ -270,10 +269,7 @@ class _RequestCard extends ConsumerWidget {
       builder: (_) => Dialog(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            '$_imageBase$url',
-            fit: BoxFit.contain,
-          ),
+          child: Image.network('$_imageBase$url', fit: BoxFit.contain),
         ),
       ),
     );
@@ -284,12 +280,12 @@ class _RequestCard extends ConsumerWidget {
         .read(adminRechargeProvider.notifier)
         .approveRequest(request.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        err ?? (isAr ? 'تمت الموافقة' : 'Demande approuvée'),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(err ?? (isAr ? 'تمت الموافقة' : 'Demande approuvée')),
+        backgroundColor: err != null ? AppColors.error : AppColors.success,
       ),
-      backgroundColor: err != null ? AppColors.error : AppColors.success,
-    ));
+    );
   }
 
   Future<void> _showRejectDialog(BuildContext context, WidgetRef ref) async {
@@ -337,12 +333,12 @@ class _RequestCard extends ConsumerWidget {
         .read(adminRechargeProvider.notifier)
         .rejectRequest(request.id, ctrl.text.trim());
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        err ?? (isAr ? 'تم الرفض' : 'Demande refusée'),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(err ?? (isAr ? 'تم الرفض' : 'Demande refusée')),
+        backgroundColor: err != null ? AppColors.error : AppColors.success,
       ),
-      backgroundColor: err != null ? AppColors.error : AppColors.success,
-    ));
+    );
   }
 }
 

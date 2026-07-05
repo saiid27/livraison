@@ -53,6 +53,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>L'application a besoin de votre position pour la livraison</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>L'application a besoin d'accéder à vos photos pour joindre les images de paiement, produits et documents.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>L'application a besoin de votre position pour le suivi de livraison</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
