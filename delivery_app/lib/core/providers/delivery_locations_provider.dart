@@ -7,6 +7,7 @@ import '../network/api_client.dart';
 
 const _toujounineTensouelimPrice = 120.0;
 const _toujounineDarNaimPrice = 130.0;
+const _toujounineNaibPrice = 100.0;
 
 final deliveryLocationListProvider = FutureProvider.autoDispose<List<String>>((
   ref,
@@ -50,6 +51,16 @@ bool _isDarNaimLocation(String name) {
   return value.startsWith('دار النعيم') || value.startsWith('دار النعيم-');
 }
 
+bool _isNaibLocation(String name) {
+  final value = name.trim();
+  return value.startsWith('النائب') ||
+      value.startsWith('النايب') ||
+      value.startsWith('كرفور النائب') ||
+      value.startsWith('كرفور النايب') ||
+      value.contains('النائب') ||
+      value.contains('النايب');
+}
+
 double? _specialDeliveryPrice(String pickup, String delivery) {
   final toujounineToTensouelim =
       _isToujounineLocation(pickup) && _isTensouelimLocation(delivery);
@@ -65,6 +76,14 @@ double? _specialDeliveryPrice(String pickup, String delivery) {
       _isDarNaimLocation(pickup) && _isToujounineLocation(delivery);
   if (toujounineToDarNaim || darNaimToToujounine) {
     return _toujounineDarNaimPrice;
+  }
+
+  final toujounineToNaib =
+      _isToujounineLocation(pickup) && _isNaibLocation(delivery);
+  final naibToToujounine =
+      _isNaibLocation(pickup) && _isToujounineLocation(delivery);
+  if (toujounineToNaib || naibToToujounine) {
+    return _toujounineNaibPrice;
   }
 
   return null;

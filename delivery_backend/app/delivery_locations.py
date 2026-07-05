@@ -5,6 +5,7 @@ from app.models.delivery_pricing import DeliveryLocation, DeliveryPrice
 DEFAULT_DELIVERY_PRICE = 100.0
 TOUJOUNINE_TENSOUELIM_PRICE = 120.0
 TOUJOUNINE_DAR_NAIM_PRICE = 130.0
+TOUJOUNINE_NAIB_PRICE = 100.0
 
 DEFAULT_DELIVERY_LOCATIONS = {
     'كرفور تنسويلم',
@@ -542,6 +543,13 @@ def _is_dar_naim_location(name):
     return normalized.startswith(("دار النعيم", "دار النعيم-"))
 
 
+def _is_naib_location(name):
+    normalized = (name or "").strip()
+    return normalized.startswith(("النائب", "النايب", "كرفور النائب", "كرفور النايب")) or (
+        "النائب" in normalized or "النايب" in normalized
+    )
+
+
 def _special_delivery_price(pickup, delivery):
     toujounine_to_tensouelim = _is_toujounine_location(
         pickup,
@@ -559,6 +567,14 @@ def _special_delivery_price(pickup, delivery):
     )
     if toujounine_to_dar_naim or dar_naim_to_toujounine:
         return TOUJOUNINE_DAR_NAIM_PRICE
+    toujounine_to_naib = _is_toujounine_location(pickup) and _is_naib_location(
+        delivery,
+    )
+    naib_to_toujounine = _is_naib_location(pickup) and _is_toujounine_location(
+        delivery,
+    )
+    if toujounine_to_naib or naib_to_toujounine:
+        return TOUJOUNINE_NAIB_PRICE
     return None
 
 
