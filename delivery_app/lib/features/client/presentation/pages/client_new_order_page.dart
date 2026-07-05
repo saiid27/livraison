@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/delivery_locations.dart';
+import '../../../../core/providers/delivery_locations_provider.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/logout_button.dart';
@@ -24,9 +25,30 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
   final _deliveryCtrl = TextEditingController();
   final _pickupFocusNode = FocusNode();
   final _deliveryFocusNode = FocusNode();
+  double? _trialPrice;
+  int _priceLookupVersion = 0;
 
-  double? get _trialPrice =>
-      trialDeliveryPrice(_pickupCtrl.text, _deliveryCtrl.text);
+  Future<void> _updateTrialPrice(List<String> locations) async {
+    final lookupVersion = ++_priceLookupVersion;
+    final pickup = _pickupCtrl.text.trim();
+    final delivery = _deliveryCtrl.text.trim();
+    final fallbackPrice = localDeliveryPriceFor(pickup, delivery, locations);
+
+    if (fallbackPrice == null) {
+      if (_trialPrice != null) setState(() => _trialPrice = null);
+      return;
+    }
+
+    if (_trialPrice != fallbackPrice) {
+      setState(() => _trialPrice = fallbackPrice);
+    }
+
+    final remotePrice = await fetchDeliveryPrice(pickup, delivery);
+    if (!mounted || lookupVersion != _priceLookupVersion) return;
+    if (remotePrice != null && remotePrice != _trialPrice) {
+      setState(() => _trialPrice = remotePrice);
+    }
+  }
 
   @override
   void dispose() {
@@ -73,6 +95,8 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final state = ref.watch(orderProvider);
     final isCourse = widget.serviceType == 'course';
+    final locationState = ref.watch(deliveryLocationListProvider);
+    final locations = locationState.value ?? deliveryLocations;
 
     return Scaffold(
       appBar: AppBar(
@@ -148,7 +172,8 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
                       iconColor: AppColors.success,
                       isAr: isAr,
                       openUp: false,
-                      onChanged: (_) => setState(() {}),
+                      locations: locations,
+                      onChanged: (_) => _updateTrialPrice(locations),
                     ),
                     const SizedBox(height: 14),
                     _LocationSearchField(
@@ -162,7 +187,8 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
                       iconColor: AppColors.primary,
                       isAr: isAr,
                       openUp: true,
-                      onChanged: (_) => setState(() {}),
+                      locations: locations,
+                      onChanged: (_) => _updateTrialPrice(locations),
                     ),
                   ],
                 ),
@@ -287,6 +313,7 @@ class _LocationSearchField extends StatelessWidget {
   final Color iconColor;
   final bool isAr;
   final bool openUp;
+  final List<String> locations;
   final ValueChanged<String> onChanged;
 
   const _LocationSearchField({
@@ -298,6 +325,7 @@ class _LocationSearchField extends StatelessWidget {
     required this.iconColor,
     required this.isAr,
     required this.openUp,
+    required this.locations,
     required this.onChanged,
   });
 
@@ -312,8 +340,8 @@ class _LocationSearchField extends StatelessWidget {
       displayStringForOption: (option) => option,
       optionsBuilder: (value) {
         final query = value.text.trim().toLowerCase();
-        if (query.isEmpty) return deliveryLocations;
-        return deliveryLocations.where(
+        if (query.isEmpty) return locations;
+        return locations.where(
           (location) => location.toLowerCase().contains(query),
         );
       },
@@ -336,7 +364,7 @@ class _LocationSearchField extends StatelessWidget {
             if (location.isEmpty) {
               return isAr ? '$label مطلوبة' : '$label requis';
             }
-            if (!deliveryLocations.contains(location)) {
+            if (!locations.contains(location)) {
               return isAr
                   ? 'اختر مكانًا من القائمة فقط'
                   : 'Choisissez uniquement un lieu de la liste';

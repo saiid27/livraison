@@ -10,7 +10,11 @@ from app.models.user import User
 from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
 from app.utils.decorators import role_required
-from app.delivery_locations import is_delivery_location, trial_delivery_price
+from app.delivery_locations import (
+    all_delivery_locations,
+    is_delivery_location,
+    trial_delivery_price,
+)
 from app.broadcast import compute_broadcast_state
 
 client_bp = Blueprint('client', __name__)
@@ -27,6 +31,18 @@ def _save_payment_screenshot(upload):
     filename = f'{uuid4().hex}{ext}'
     upload.save(os.path.join(target_dir, filename))
     return f'/uploads/merchant_payments/{filename}'
+
+
+@client_bp.route('/delivery-locations', methods=['GET'])
+def delivery_locations():
+    return jsonify({'locations': all_delivery_locations()}), 200
+
+
+@client_bp.route('/delivery-price', methods=['GET'])
+def delivery_price():
+    pickup = str(request.args.get('pickup') or '').strip()
+    delivery = str(request.args.get('delivery') or '').strip()
+    return jsonify({'price': trial_delivery_price(pickup, delivery)}), 200
 
 
 @client_bp.route('/orders', methods=['GET'])

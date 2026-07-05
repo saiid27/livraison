@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/delivery_locations.dart';
+import '../../../../core/providers/delivery_locations_provider.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/admin_provider.dart';
@@ -23,9 +24,30 @@ class _AdminManualOrderDialogState
   final _deliveryCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   bool _isSubmitting = false;
+  double? _trialPrice;
+  int _priceLookupVersion = 0;
 
-  double? get _trialPrice =>
-      trialDeliveryPrice(_pickupCtrl.text.trim(), _deliveryCtrl.text.trim());
+  Future<void> _updateTrialPrice(List<String> locations) async {
+    final lookupVersion = ++_priceLookupVersion;
+    final pickup = _pickupCtrl.text.trim();
+    final delivery = _deliveryCtrl.text.trim();
+    final fallbackPrice = localDeliveryPriceFor(pickup, delivery, locations);
+
+    if (fallbackPrice == null) {
+      if (_trialPrice != null) setState(() => _trialPrice = null);
+      return;
+    }
+
+    if (_trialPrice != fallbackPrice) {
+      setState(() => _trialPrice = fallbackPrice);
+    }
+
+    final remotePrice = await fetchDeliveryPrice(pickup, delivery);
+    if (!mounted || lookupVersion != _priceLookupVersion) return;
+    if (remotePrice != null && remotePrice != _trialPrice) {
+      setState(() => _trialPrice = remotePrice);
+    }
+  }
 
   double? get _customPrice {
     final raw = _priceCtrl.text.trim().replaceAll(',', '.');
@@ -98,6 +120,8 @@ class _AdminManualOrderDialogState
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final trialPrice = _trialPrice;
+    final locationState = ref.watch(deliveryLocationListProvider);
+    final locations = locationState.value ?? deliveryLocations;
 
     return AlertDialog(
       title: Text(isAr ? 'إرسال طلب توصيل' : 'Créer une livraison'),
@@ -134,7 +158,8 @@ class _AdminManualOrderDialogState
                 isAr: isAr,
                 label: isAr ? 'نقطة الاستلام' : 'Point de départ',
                 icon: Icons.radio_button_checked,
-                onChanged: (_) => setState(() {}),
+                locations: locations,
+                onChanged: (_) => _updateTrialPrice(locations),
               ),
               const SizedBox(height: 12),
               _LocationTextField(
@@ -142,7 +167,8 @@ class _AdminManualOrderDialogState
                 isAr: isAr,
                 label: isAr ? 'نقطة التوصيل' : 'Destination',
                 icon: Icons.location_on_outlined,
-                onChanged: (_) => setState(() {}),
+                locations: locations,
+                onChanged: (_) => _updateTrialPrice(locations),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -222,6 +248,7 @@ class _LocationTextField extends StatelessWidget {
   final bool isAr;
   final String label;
   final IconData icon;
+  final List<String> locations;
   final ValueChanged<String> onChanged;
 
   const _LocationTextField({
@@ -229,6 +256,7 @@ class _LocationTextField extends StatelessWidget {
     required this.isAr,
     required this.label,
     required this.icon,
+    required this.locations,
     required this.onChanged,
   });
 
@@ -246,7 +274,7 @@ class _LocationTextField extends StatelessWidget {
             controller.text = value;
             onChanged(value);
           },
-          itemBuilder: (_) => deliveryLocations
+          itemBuilder: (_) => locations
               .map(
                 (location) =>
                     PopupMenuItem(value: location, child: Text(location)),
