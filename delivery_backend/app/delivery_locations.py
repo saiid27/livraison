@@ -3,6 +3,7 @@ from app.models.delivery_pricing import DeliveryLocation, DeliveryPrice
 
 
 DEFAULT_DELIVERY_PRICE = 100.0
+TOUJOUNINE_TENSOUELIM_PRICE = 120.0
 
 DEFAULT_DELIVERY_LOCATIONS = {
     'كرفور تنسويلم',
@@ -523,6 +524,30 @@ def _location_by_name(name):
     return DeliveryLocation.query.filter_by(name=name, is_active=True).first()
 
 
+def _is_toujounine_location(name):
+    normalized = (name or "").strip()
+    return normalized.startswith(("توجونين", "تجونين", "توجنين"))
+
+
+def _is_tensouelim_location(name):
+    normalized = (name or "").strip()
+    return normalized.startswith(
+        ("تنسويلم", "كرفور تنسويلم", "كروفور تنسويلم"),
+    )
+
+
+def _special_delivery_price(pickup, delivery):
+    toujounine_to_tensouelim = _is_toujounine_location(
+        pickup,
+    ) and _is_tensouelim_location(delivery)
+    tensouelim_to_toujounine = _is_tensouelim_location(
+        pickup,
+    ) and _is_toujounine_location(delivery)
+    if toujounine_to_tensouelim or tensouelim_to_toujounine:
+        return TOUJOUNINE_TENSOUELIM_PRICE
+    return None
+
+
 def trial_delivery_price(pickup, delivery):
     if not pickup or not delivery or pickup == delivery:
         return None
@@ -539,10 +564,14 @@ def trial_delivery_price(pickup, delivery):
                     pickup_location_id=delivery_location.id,
                     delivery_location_id=pickup_location.id,
                 ).first()
-            return price.price if price else DEFAULT_DELIVERY_PRICE
+            if price:
+                return price.price
+            special_price = _special_delivery_price(pickup, delivery)
+            return special_price if special_price is not None else DEFAULT_DELIVERY_PRICE
     except Exception:
         pass
 
     if pickup in DEFAULT_DELIVERY_LOCATIONS and delivery in DEFAULT_DELIVERY_LOCATIONS:
-        return DEFAULT_DELIVERY_PRICE
+        special_price = _special_delivery_price(pickup, delivery)
+        return special_price if special_price is not None else DEFAULT_DELIVERY_PRICE
     return None

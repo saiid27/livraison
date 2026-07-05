@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/delivery_locations.dart';
 import '../network/api_client.dart';
 
+const _toujounineTensouelimPrice = 120.0;
+
 final deliveryLocationListProvider = FutureProvider.autoDispose<List<String>>((
   ref,
 ) async {
@@ -28,6 +30,30 @@ final deliveryLocationListProvider = FutureProvider.autoDispose<List<String>>((
   return deliveryLocations;
 });
 
+bool _isToujounineLocation(String name) {
+  final value = name.trim();
+  return value.startsWith('توجونين') ||
+      value.startsWith('تجونين') ||
+      value.startsWith('توجنين');
+}
+
+bool _isTensouelimLocation(String name) {
+  final value = name.trim();
+  return value.startsWith('تنسويلم') ||
+      value.startsWith('كرفور تنسويلم') ||
+      value.startsWith('كروفور تنسويلم');
+}
+
+double? _specialDeliveryPrice(String pickup, String delivery) {
+  final toujounineToTensouelim =
+      _isToujounineLocation(pickup) && _isTensouelimLocation(delivery);
+  final tensouelimToToujounine =
+      _isTensouelimLocation(pickup) && _isToujounineLocation(delivery);
+  return toujounineToTensouelim || tensouelimToToujounine
+      ? _toujounineTensouelimPrice
+      : null;
+}
+
 double? localDeliveryPriceFor(
   String pickup,
   String delivery,
@@ -39,7 +65,8 @@ double? localDeliveryPriceFor(
       locations.contains(pickupName) &&
       locations.contains(deliveryName) &&
       pickupName != deliveryName;
-  return hasValidPoints ? 100 : null;
+  if (!hasValidPoints) return null;
+  return _specialDeliveryPrice(pickupName, deliveryName) ?? 100;
 }
 
 Future<double?> fetchDeliveryPrice(String pickup, String delivery) async {

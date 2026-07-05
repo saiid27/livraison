@@ -478,10 +478,37 @@ const deliveryLocations = <String>[
   'تيارت - دودو شوب',
 ];
 
+const _toujounineTensouelimPrice = 120.0;
+
+bool _isToujounineLocation(String name) {
+  final value = name.trim();
+  return value.startsWith('توجونين') ||
+      value.startsWith('تجونين') ||
+      value.startsWith('توجنين');
+}
+
+bool _isTensouelimLocation(String name) {
+  final value = name.trim();
+  return value.startsWith('تنسويلم') ||
+      value.startsWith('كرفور تنسويلم') ||
+      value.startsWith('كروفور تنسويلم');
+}
+
+double? _specialDeliveryPrice(String pickup, String delivery) {
+  final toujounineToTensouelim =
+      _isToujounineLocation(pickup) && _isTensouelimLocation(delivery);
+  final tensouelimToToujounine =
+      _isTensouelimLocation(pickup) && _isToujounineLocation(delivery);
+  return toujounineToTensouelim || tensouelimToToujounine
+      ? _toujounineTensouelimPrice
+      : null;
+}
+
 double? trialDeliveryPrice(String pickup, String delivery) {
   final hasValidPoints =
       deliveryLocations.contains(pickup) &&
       deliveryLocations.contains(delivery) &&
       pickup != delivery;
-  return hasValidPoints ? 100 : null;
+  if (!hasValidPoints) return null;
+  return _specialDeliveryPrice(pickup, delivery) ?? 100;
 }
