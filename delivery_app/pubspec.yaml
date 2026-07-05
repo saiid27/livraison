@@ -2,7 +2,7 @@ name: delivery_app
 description: "Application de livraison générale"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.5
@@ -30,10 +30,7 @@ dependencies:
   shared_preferences: ^2.3.3
   flutter_secure_storage: ^9.2.2
 
-  # Maps & Location
-  google_maps_flutter: ^2.9.0
-  geolocator: ^13.0.2
-  geocoding: ^3.0.0
+  # Maps
 
   # UI Components
   flutter_svg: ^2.0.10
