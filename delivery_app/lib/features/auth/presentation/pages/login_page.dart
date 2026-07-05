@@ -268,9 +268,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       child: Column(
                         children: [
                           const LanguageButton(color: AppColors.primary),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 18),
                           const Text(
-                            'mayahsar @2016 | dev. med said mohameden',
+                            'mayahsar @2026 | dev. med said mohameden',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.textSecondary,
