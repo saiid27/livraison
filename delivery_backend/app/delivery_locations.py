@@ -30,6 +30,19 @@ TENSOUELIM_MELAH_PRICE = 110.0
 TENSOUELIM_FALLOUJA_PRICE = 100.0
 TENSOUELIM_TWENTY_FOURTH_PRICE = 100.0
 TENSOUELIM_MADRID_PRICE = 100.0
+DAR_NAIM_TEYARET_PRICE = 110.0
+DAR_NAIM_BMD_PRICE = 120.0
+DAR_NAIM_ETIHADIA_PRICE = 110.0
+DAR_NAIM_ARAFAT_PRICE = 130.0
+DAR_NAIM_MELAH_PRICE = 130.0
+DAR_NAIM_FALLOUJA_PRICE = 130.0
+DAR_NAIM_TARHIL_PRICE = 160.0
+DAR_NAIM_BEIKA_PRICE = 160.0
+DAR_NAIM_MADRID_PRICE = 120.0
+DAR_NAIM_TWENTY_FOURTH_PRICE = 100.0
+DAR_NAIM_DAR_SALAMA_PRICE = 120.0
+DAR_NAIM_NAIB_PRICE = 100.0
+DAR_NAIM_HAY_SAKEN_PRICE = 100.0
 
 DEFAULT_DELIVERY_LOCATIONS = {
     'كرفور تنسويلم',
@@ -635,6 +648,10 @@ def _is_zaatar_location(name):
     return _has_location_term(name, "الزعتر")
 
 
+def _is_hay_saken_location(name):
+    return _has_location_term(name, "الحي الساكن")
+
+
 def _special_delivery_price(pickup, delivery):
     toujounine_rules = (
         (_is_twenty_fourth_location, TOUJOUNINE_TWENTY_FOURTH_PRICE),
@@ -675,6 +692,26 @@ def _special_delivery_price(pickup, delivery):
     for matcher, price in tensouelim_rules:
         if (_is_tensouelim_location(pickup) and matcher(delivery)) or (
             matcher(pickup) and _is_tensouelim_location(delivery)
+        ):
+            return price
+    dar_naim_rules = (
+        (_is_twenty_fourth_location, DAR_NAIM_TWENTY_FOURTH_PRICE),
+        (_is_teyaret_location, DAR_NAIM_TEYARET_PRICE),
+        (_is_bmd_location, DAR_NAIM_BMD_PRICE),
+        (_is_etihadia_location, DAR_NAIM_ETIHADIA_PRICE),
+        (_is_arafat_location, DAR_NAIM_ARAFAT_PRICE),
+        (_is_fallouja_location, DAR_NAIM_FALLOUJA_PRICE),
+        (_is_tarhil_location, DAR_NAIM_TARHIL_PRICE),
+        (_is_beika_location, DAR_NAIM_BEIKA_PRICE),
+        (_is_madrid_location, DAR_NAIM_MADRID_PRICE),
+        (_is_dar_salama_location, DAR_NAIM_DAR_SALAMA_PRICE),
+        (_is_naib_location, DAR_NAIM_NAIB_PRICE),
+        (_is_hay_saken_location, DAR_NAIM_HAY_SAKEN_PRICE),
+        (_is_melah_location, DAR_NAIM_MELAH_PRICE),
+    )
+    for matcher, price in dar_naim_rules:
+        if (_is_dar_naim_location(pickup) and matcher(delivery)) or (
+            matcher(pickup) and _is_dar_naim_location(delivery)
         ):
             return price
     return None

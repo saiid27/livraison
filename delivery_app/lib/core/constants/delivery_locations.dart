@@ -505,6 +505,19 @@ const _tensouelimMelahPrice = 110.0;
 const _tensouelimFalloujaPrice = 100.0;
 const _tensouelimTwentyFourthPrice = 100.0;
 const _tensouelimMadridPrice = 100.0;
+const _darNaimTeyaretPrice = 110.0;
+const _darNaimBmdPrice = 120.0;
+const _darNaimEtihadiaPrice = 110.0;
+const _darNaimArafatPrice = 130.0;
+const _darNaimMelahPrice = 130.0;
+const _darNaimFalloujaPrice = 130.0;
+const _darNaimTarhilPrice = 160.0;
+const _darNaimBeikaPrice = 160.0;
+const _darNaimMadridPrice = 120.0;
+const _darNaimTwentyFourthPrice = 100.0;
+const _darNaimDarSalamaPrice = 120.0;
+const _darNaimNaibPrice = 100.0;
+const _darNaimHaySakenPrice = 100.0;
 
 bool _isToujounineLocation(String name) {
   final value = name.trim();
@@ -575,6 +588,9 @@ bool _isAtrikStadeLocation(String name) =>
 
 bool _isZaatarLocation(String name) => _hasLocationTerm(name, ['الزعتر']);
 
+bool _isHaySakenLocation(String name) =>
+    _hasLocationTerm(name, ['الحي الساكن']);
+
 double? _specialDeliveryPrice(String pickup, String delivery) {
   final toujounineRules = <({bool Function(String) matcher, double price})>[
     (matcher: _isTwentyFourthLocation, price: _toujounineTwentyFourthPrice),
@@ -617,6 +633,28 @@ double? _specialDeliveryPrice(String pickup, String delivery) {
   for (final rule in tensouelimRules) {
     if ((_isTensouelimLocation(pickup) && rule.matcher(delivery)) ||
         (rule.matcher(pickup) && _isTensouelimLocation(delivery))) {
+      return rule.price;
+    }
+  }
+
+  final darNaimRules = <({bool Function(String) matcher, double price})>[
+    (matcher: _isTwentyFourthLocation, price: _darNaimTwentyFourthPrice),
+    (matcher: _isTeyaretLocation, price: _darNaimTeyaretPrice),
+    (matcher: _isBmdLocation, price: _darNaimBmdPrice),
+    (matcher: _isEtihadiaLocation, price: _darNaimEtihadiaPrice),
+    (matcher: _isArafatLocation, price: _darNaimArafatPrice),
+    (matcher: _isFalloujaLocation, price: _darNaimFalloujaPrice),
+    (matcher: _isTarhilLocation, price: _darNaimTarhilPrice),
+    (matcher: _isBeikaLocation, price: _darNaimBeikaPrice),
+    (matcher: _isMadridLocation, price: _darNaimMadridPrice),
+    (matcher: _isDarSalamaLocation, price: _darNaimDarSalamaPrice),
+    (matcher: _isNaibLocation, price: _darNaimNaibPrice),
+    (matcher: _isHaySakenLocation, price: _darNaimHaySakenPrice),
+    (matcher: _isMelahLocation, price: _darNaimMelahPrice),
+  ];
+  for (final rule in darNaimRules) {
+    if ((_isDarNaimLocation(pickup) && rule.matcher(delivery)) ||
+        (rule.matcher(pickup) && _isDarNaimLocation(delivery))) {
       return rule.price;
     }
   }
