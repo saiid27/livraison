@@ -235,7 +235,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 4),
                     Center(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
@@ -263,21 +263,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       ),
                     ),
-                    const Spacer(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
                     Center(
                       child: Column(
                         children: [
-                          Text(
-                            locale.languageCode == 'ar' ? 'اللغة' : 'Langue',
-                            style: const TextStyle(
+                          const LanguageButton(color: AppColors.primary),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'mayahsar @2016 | dev. med said mohameden',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
                               color: AppColors.textSecondary,
-                              fontSize: 13,
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          const LanguageButton(color: AppColors.primary),
                         ],
                       ),
                     ),
