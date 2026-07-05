@@ -383,7 +383,7 @@ class _LocationSearchField extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: 260,
+                maxHeight: 168,
                 maxWidth: MediaQuery.sizeOf(context).width - 64,
               ),
               child: ListView.separated(
@@ -394,6 +394,8 @@ class _LocationSearchField extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final location = matches[index];
                   return ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
                     leading: Icon(icon, color: iconColor, size: 20),
                     title: Text(location, textAlign: TextAlign.right),
                     onTap: () => onSelected(location),
