@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, redirect, render_template_string, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from pathlib import Path
 from uuid import uuid4
@@ -15,8 +15,9 @@ from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
 from app.models.merchant_payment_method import MerchantPaymentMethod
 from app.models.cash_transaction import CashTransaction
+from app.models.delivery_pricing import DeliveryLocation, DeliveryPrice
 from app.utils.decorators import role_required
-from app.delivery_locations import trial_delivery_price
+from app.delivery_locations import DEFAULT_DELIVERY_PRICE, trial_delivery_price
 from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
@@ -107,7 +108,202 @@ def _current_developer():
     return user
 
 
+_PRICING_PAGE_TEMPLATE = """
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>إدارة الأماكن والأسعار</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #f6f7fb; color: #172033; }
+    header { background: #2563eb; color: white; padding: 22px; }
+    main { padding: 18px; max-width: 1100px; margin: auto; }
+    section { background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+    h1, h2 { margin: 0 0 14px; }
+    form { display: grid; gap: 10px; }
+    label { font-weight: 800; font-size: 13px; }
+    input, select, button { font: inherit; border-radius: 10px; border: 1px solid #d1d5db; padding: 11px; }
+    button { background: #2563eb; color: white; border: 0; font-weight: 900; cursor: pointer; }
+    .danger { background: #ef4444; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: right; border-bottom: 1px solid #edf0f5; padding: 10px; }
+    th { color: #64748b; font-size: 12px; }
+    .muted { color: #64748b; }
+    .pill { display: inline-block; background: #e0f2fe; color: #0369a1; border-radius: 999px; padding: 6px 10px; margin: 3px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>إدارة أماكن التوصيل والأسعار</h1>
+    <div>أضف الأماكن وحدد سعر التوصيل بين أي نقطتين.</div>
+  </header>
+  <main>
+    <div class="grid">
+      <section>
+        <h2>إضافة مكان</h2>
+        <form method="post" action="{{ url_for('admin.add_delivery_location_web') }}">
+          <label>اسم المكان</label>
+          <input name="name" required placeholder="مثال: عرفات - مسجد التقوى">
+          <button type="submit">حفظ المكان</button>
+        </form>
+      </section>
+      <section>
+        <h2>تحديد سعر</h2>
+        <form method="post" action="{{ url_for('admin.set_delivery_price_web') }}">
+          <label>من</label>
+          <select name="pickup_id" required>
+            {% for location in locations %}
+              <option value="{{ location.id }}">{{ location.name }}</option>
+            {% endfor %}
+          </select>
+          <label>إلى</label>
+          <select name="delivery_id" required>
+            {% for location in locations %}
+              <option value="{{ location.id }}">{{ location.name }}</option>
+            {% endfor %}
+          </select>
+          <label>السعر MRU</label>
+          <input name="price" type="number" min="1" step="1" required value="{{ default_price|int }}">
+          <button type="submit">حفظ السعر</button>
+        </form>
+      </section>
+      <section>
+        <h2>تسعير كل الأزواج</h2>
+        <p class="muted">ينشئ الأسعار الناقصة فقط بين كل الأماكن بالسعر الافتراضي.</p>
+        <form method="post" action="{{ url_for('admin.generate_delivery_prices_web') }}">
+          <label>السعر الافتراضي MRU</label>
+          <input name="price" type="number" min="1" step="1" required value="{{ default_price|int }}">
+          <button type="submit">توليد الأسعار الناقصة</button>
+        </form>
+      </section>
+    </div>
+    <section>
+      <h2>الأماكن ({{ locations|length }})</h2>
+      {% for location in locations %}
+        <span class="pill">{{ location.name }}</span>
+      {% endfor %}
+    </section>
+    <section>
+      <h2>الأسعار المحفوظة ({{ prices|length }})</h2>
+      <table>
+        <thead><tr><th>من</th><th>إلى</th><th>السعر</th></tr></thead>
+        <tbody>
+          {% for price in prices %}
+            <tr>
+              <td>{{ price.pickup_location.name }}</td>
+              <td>{{ price.delivery_location.name }}</td>
+              <td>{{ price.price|int }} MRU</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
+"""
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
+
+@admin_bp.route('/delivery-pricing', methods=['GET'])
+def delivery_pricing_web():
+    locations = DeliveryLocation.query.filter_by(is_active=True).order_by(
+        DeliveryLocation.name.asc(),
+    ).all()
+    prices = DeliveryPrice.query.join(
+        DeliveryLocation,
+        DeliveryPrice.pickup_location_id == DeliveryLocation.id,
+    ).order_by(DeliveryPrice.updated_at.desc()).all()
+    return render_template_string(
+        _PRICING_PAGE_TEMPLATE,
+        locations=locations,
+        prices=prices,
+        default_price=DEFAULT_DELIVERY_PRICE,
+    )
+
+
+@admin_bp.route('/delivery-pricing/locations', methods=['POST'])
+def add_delivery_location_web():
+    name = str(request.form.get('name') or '').strip()
+    if name:
+        exists = DeliveryLocation.query.filter_by(name=name).first()
+        if not exists:
+            db.session.add(DeliveryLocation(name=name, is_active=True))
+            db.session.commit()
+        elif not exists.is_active:
+            exists.is_active = True
+            db.session.commit()
+    return redirect(url_for('admin.delivery_pricing_web'))
+
+
+@admin_bp.route('/delivery-pricing/prices', methods=['POST'])
+def set_delivery_price_web():
+    try:
+        pickup_id = int(request.form.get('pickup_id') or 0)
+        delivery_id = int(request.form.get('delivery_id') or 0)
+        price_value = float(request.form.get('price') or 0)
+    except (TypeError, ValueError):
+        return redirect(url_for('admin.delivery_pricing_web'))
+    if pickup_id and delivery_id and pickup_id != delivery_id and price_value > 0:
+        price = DeliveryPrice.query.filter_by(
+            pickup_location_id=pickup_id,
+            delivery_location_id=delivery_id,
+        ).first()
+        reverse = DeliveryPrice.query.filter_by(
+            pickup_location_id=delivery_id,
+            delivery_location_id=pickup_id,
+        ).first()
+        if price:
+            price.price = price_value
+        elif reverse:
+            reverse.price = price_value
+        else:
+            db.session.add(
+                DeliveryPrice(
+                    pickup_location_id=pickup_id,
+                    delivery_location_id=delivery_id,
+                    price=price_value,
+                )
+            )
+        db.session.commit()
+    return redirect(url_for('admin.delivery_pricing_web'))
+
+
+@admin_bp.route('/delivery-pricing/generate', methods=['POST'])
+def generate_delivery_prices_web():
+    try:
+        price_value = float(request.form.get('price') or DEFAULT_DELIVERY_PRICE)
+    except (TypeError, ValueError):
+        price_value = DEFAULT_DELIVERY_PRICE
+    locations = DeliveryLocation.query.filter_by(is_active=True).all()
+    for index, pickup in enumerate(locations):
+        for delivery in locations[index + 1:]:
+            exists = DeliveryPrice.query.filter(
+                db.or_(
+                    db.and_(
+                        DeliveryPrice.pickup_location_id == pickup.id,
+                        DeliveryPrice.delivery_location_id == delivery.id,
+                    ),
+                    db.and_(
+                        DeliveryPrice.pickup_location_id == delivery.id,
+                        DeliveryPrice.delivery_location_id == pickup.id,
+                    ),
+                )
+            ).first()
+            if not exists:
+                db.session.add(
+                    DeliveryPrice(
+                        pickup_location_id=pickup.id,
+                        delivery_location_id=delivery.id,
+                        price=price_value,
+                    )
+                )
+    db.session.commit()
+    return redirect(url_for('admin.delivery_pricing_web'))
+
 
 @admin_bp.route('/dashboard', methods=['GET'])
 @jwt_required()

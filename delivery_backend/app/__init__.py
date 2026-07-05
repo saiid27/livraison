@@ -97,7 +97,9 @@ def create_app():
         from app.models.merchant_order import MerchantOrder  # noqa: F401
         from app.models.merchant_payment_method import MerchantPaymentMethod  # noqa: F401
         from app.models.cash_transaction import CashTransaction  # noqa: F401
+        from app.models.delivery_pricing import DeliveryLocation, DeliveryPrice  # noqa: F401
         from app.models.user import User
+        from app.delivery_locations import seed_default_delivery_locations
 
         enum_exists = db.session.execute(
             text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role')")
@@ -112,6 +114,7 @@ def create_app():
             db.session.commit()
 
         db.create_all()
+        seed_default_delivery_locations()
 
         db.session.execute(
             text(

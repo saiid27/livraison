@@ -5,3 +5,4 @@ from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
 from app.models.merchant_payment_method import MerchantPaymentMethod
 from app.models.cash_transaction import CashTransaction
+from app.models.delivery_pricing import DeliveryLocation, DeliveryPrice

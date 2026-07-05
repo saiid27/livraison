@@ -10,7 +10,7 @@ from app.models.user import User
 from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
 from app.utils.decorators import role_required
-from app.delivery_locations import DELIVERY_LOCATIONS, trial_delivery_price
+from app.delivery_locations import is_delivery_location, trial_delivery_price
 from app.broadcast import compute_broadcast_state
 
 client_bp = Blueprint('client', __name__)
@@ -51,8 +51,8 @@ def create_order():
 
     pickup_address = data['pickup_address'].strip()
     delivery_address = data['delivery_address'].strip()
-    if (pickup_address not in DELIVERY_LOCATIONS or
-            delivery_address not in DELIVERY_LOCATIONS):
+    if (not is_delivery_location(pickup_address) or
+            not is_delivery_location(delivery_address)):
         return jsonify({'message': 'Veuillez choisir un lieu disponible'}), 400
     if pickup_address == delivery_address:
         return jsonify({'message': 'Les deux points doivent être différents'}), 400
