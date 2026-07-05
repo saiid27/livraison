@@ -6,6 +6,18 @@ DEFAULT_DELIVERY_PRICE = 100.0
 TOUJOUNINE_TENSOUELIM_PRICE = 120.0
 TOUJOUNINE_DAR_NAIM_PRICE = 130.0
 TOUJOUNINE_NAIB_PRICE = 100.0
+TOUJOUNINE_ETIHADIA_PRICE = 150.0
+TOUJOUNINE_TEYARET_PRICE = 150.0
+TOUJOUNINE_MADRID_PRICE = 120.0
+TOUJOUNINE_ARAFAT_PRICE = 130.0
+TOUJOUNINE_FALLOUJA_PRICE = 120.0
+TOUJOUNINE_MELAH_PRICE = 100.0
+TOUJOUNINE_TARHIL_PRICE = 150.0
+TOUJOUNINE_BEIKA_PRICE = 150.0
+TOUJOUNINE_AFARCO_PRICE = 120.0
+TOUJOUNINE_BMD_PRICE = 140.0
+TOUJOUNINE_DAR_SALAMA_PRICE = 180.0
+TOUJOUNINE_TWENTY_FOURTH_PRICE = 110.0
 
 DEFAULT_DELIVERY_LOCATIONS = {
     'كرفور تنسويلم',
@@ -550,31 +562,82 @@ def _is_naib_location(name):
     )
 
 
+def _has_location_term(name, *terms):
+    normalized = (name or "").strip().lower()
+    return any(term.lower() in normalized for term in terms)
+
+
+def _is_etihadia_location(name):
+    return _has_location_term(name, "الاتحادية")
+
+
+def _is_teyaret_location(name):
+    return _has_location_term(name, "تيارت", "تيرات")
+
+
+def _is_madrid_location(name):
+    return _has_location_term(name, "مدريد")
+
+
+def _is_arafat_location(name):
+    return _has_location_term(name, "عرفات", "عرفاات")
+
+
+def _is_fallouja_location(name):
+    return _has_location_term(name, "الفلوجة")
+
+
+def _is_melah_location(name):
+    return _has_location_term(name, "ملح")
+
+
+def _is_tarhil_location(name):
+    return _has_location_term(name, "الترحيل", "ترحيل", "النرحييل")
+
+
+def _is_beika_location(name):
+    return _has_location_term(name, "بيكة")
+
+
+def _is_afarco_location(name):
+    return _has_location_term(name, "افاركو", "أفاركو")
+
+
+def _is_bmd_location(name):
+    return _has_location_term(name, "bmd", "بي ام دي")
+
+
+def _is_dar_salama_location(name):
+    return _has_location_term(name, "دار السلامة", "دارالسلامة")
+
+
+def _is_twenty_fourth_location(name):
+    return _has_location_term(name, "الرابع والعشرين")
+
+
 def _special_delivery_price(pickup, delivery):
-    toujounine_to_tensouelim = _is_toujounine_location(
-        pickup,
-    ) and _is_tensouelim_location(delivery)
-    tensouelim_to_toujounine = _is_tensouelim_location(
-        pickup,
-    ) and _is_toujounine_location(delivery)
-    if toujounine_to_tensouelim or tensouelim_to_toujounine:
-        return TOUJOUNINE_TENSOUELIM_PRICE
-    toujounine_to_dar_naim = _is_toujounine_location(pickup) and _is_dar_naim_location(
-        delivery,
+    toujounine_rules = (
+        (_is_twenty_fourth_location, TOUJOUNINE_TWENTY_FOURTH_PRICE),
+        (_is_tensouelim_location, TOUJOUNINE_TENSOUELIM_PRICE),
+        (_is_dar_naim_location, TOUJOUNINE_DAR_NAIM_PRICE),
+        (_is_naib_location, TOUJOUNINE_NAIB_PRICE),
+        (_is_etihadia_location, TOUJOUNINE_ETIHADIA_PRICE),
+        (_is_teyaret_location, TOUJOUNINE_TEYARET_PRICE),
+        (_is_madrid_location, TOUJOUNINE_MADRID_PRICE),
+        (_is_arafat_location, TOUJOUNINE_ARAFAT_PRICE),
+        (_is_fallouja_location, TOUJOUNINE_FALLOUJA_PRICE),
+        (_is_tarhil_location, TOUJOUNINE_TARHIL_PRICE),
+        (_is_beika_location, TOUJOUNINE_BEIKA_PRICE),
+        (_is_afarco_location, TOUJOUNINE_AFARCO_PRICE),
+        (_is_bmd_location, TOUJOUNINE_BMD_PRICE),
+        (_is_dar_salama_location, TOUJOUNINE_DAR_SALAMA_PRICE),
+        (_is_melah_location, TOUJOUNINE_MELAH_PRICE),
     )
-    dar_naim_to_toujounine = _is_dar_naim_location(pickup) and _is_toujounine_location(
-        delivery,
-    )
-    if toujounine_to_dar_naim or dar_naim_to_toujounine:
-        return TOUJOUNINE_DAR_NAIM_PRICE
-    toujounine_to_naib = _is_toujounine_location(pickup) and _is_naib_location(
-        delivery,
-    )
-    naib_to_toujounine = _is_naib_location(pickup) and _is_toujounine_location(
-        delivery,
-    )
-    if toujounine_to_naib or naib_to_toujounine:
-        return TOUJOUNINE_NAIB_PRICE
+    for matcher, price in toujounine_rules:
+        if (_is_toujounine_location(pickup) and matcher(delivery)) or (
+            matcher(pickup) and _is_toujounine_location(delivery)
+        ):
+            return price
     return None
 
 
