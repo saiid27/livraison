@@ -479,6 +479,7 @@ const deliveryLocations = <String>[
 ];
 
 const _toujounineTensouelimPrice = 120.0;
+const _toujounineDarNaimPrice = 130.0;
 
 bool _isToujounineLocation(String name) {
   final value = name.trim();
@@ -494,14 +495,29 @@ bool _isTensouelimLocation(String name) {
       value.startsWith('كروفور تنسويلم');
 }
 
+bool _isDarNaimLocation(String name) {
+  final value = name.trim();
+  return value.startsWith('دار النعيم') || value.startsWith('دار النعيم-');
+}
+
 double? _specialDeliveryPrice(String pickup, String delivery) {
   final toujounineToTensouelim =
       _isToujounineLocation(pickup) && _isTensouelimLocation(delivery);
   final tensouelimToToujounine =
       _isTensouelimLocation(pickup) && _isToujounineLocation(delivery);
-  return toujounineToTensouelim || tensouelimToToujounine
-      ? _toujounineTensouelimPrice
-      : null;
+  if (toujounineToTensouelim || tensouelimToToujounine) {
+    return _toujounineTensouelimPrice;
+  }
+
+  final toujounineToDarNaim =
+      _isToujounineLocation(pickup) && _isDarNaimLocation(delivery);
+  final darNaimToToujounine =
+      _isDarNaimLocation(pickup) && _isToujounineLocation(delivery);
+  if (toujounineToDarNaim || darNaimToToujounine) {
+    return _toujounineDarNaimPrice;
+  }
+
+  return null;
 }
 
 double? trialDeliveryPrice(String pickup, String delivery) {
