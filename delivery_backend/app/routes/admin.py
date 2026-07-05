@@ -22,6 +22,23 @@ from datetime import datetime
 admin_bp = Blueprint('admin', __name__)
 
 _ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
+_IMAGE_MIME_BY_EXT = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+}
+_CAPTAIN_DOCUMENT_FIELDS = {
+    'profile_image': ('avatar', 'avatar_data', 'avatar_mime'),
+    'id_card_image': ('id_card_image', 'id_card_image_data', 'id_card_image_mime'),
+    'vehicle_image': ('vehicle_image', 'vehicle_image_data', 'vehicle_image_mime'),
+    'vehicle_registration_image': (
+        'vehicle_registration_image',
+        'vehicle_registration_image_data',
+        'vehicle_registration_image_mime',
+    ),
+    'permit_image': ('permit_image', 'permit_image_data', 'permit_image_mime'),
+}
 
 
 def _save_upload(upload, subfolder):
@@ -34,6 +51,18 @@ def _save_upload(upload, subfolder):
     filename = f'{uuid4().hex}{ext}'
     upload.save(os.path.join(target_dir, filename))
     return f'/uploads/{subfolder}/{filename}'
+
+
+def _read_image_upload(upload):
+    original = secure_filename(upload.filename or '')
+    ext = Path(original).suffix.lower()
+    mime_type = _IMAGE_MIME_BY_EXT.get(ext)
+    if not mime_type:
+        raise ValueError('Format image non pris en charge')
+    image_data = upload.read()
+    if not image_data:
+        raise ValueError('Image vide')
+    return image_data, mime_type
 
 
 def _cashbox_totals():
@@ -352,6 +381,40 @@ def captain_profile(user_id):
             'delivered_count': delivered,
             'balance': captain.balance,
         },
+    }), 200
+
+
+@admin_bp.route('/captains/<int:user_id>/documents', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+def update_captain_documents(user_id):
+    captain = User.query.filter(
+        User.id == user_id,
+        User.role.in_(('livreur', 'car_captain')),
+    ).first()
+    if not captain:
+        return jsonify({'message': 'Capitaine introuvable'}), 404
+
+    uploaded = [
+        key for key in _CAPTAIN_DOCUMENT_FIELDS if key in request.files
+    ]
+    if not uploaded:
+        return jsonify({'message': 'Aucune image envoyée'}), 400
+
+    try:
+        for form_key in uploaded:
+            path_attr, data_attr, mime_attr = _CAPTAIN_DOCUMENT_FIELDS[form_key]
+            image_data, mime_type = _read_image_upload(request.files[form_key])
+            setattr(captain, data_attr, image_data)
+            setattr(captain, mime_attr, mime_type)
+            setattr(captain, path_attr, f'/api/auth/images/{captain.id}/{path_attr}')
+    except ValueError as error:
+        return jsonify({'message': str(error)}), 400
+
+    db.session.commit()
+    return jsonify({
+        'user': captain.to_dict(),
+        'message': 'تم تحديث صور الكابتن',
     }), 200
 
 

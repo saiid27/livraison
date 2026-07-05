@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/network/api_client.dart';
@@ -155,6 +157,18 @@ class _AdminProfileDetailPageState
     await _future;
   }
 
+  Future<void> _uploadCaptainDocument(String field, String imagePath) async {
+    final formData = FormData.fromMap({
+      field: await MultipartFile.fromFile(imagePath),
+    });
+    await ApiClient.instance.put(
+      '/admin/captains/${widget.userId}/documents',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
@@ -197,7 +211,11 @@ class _AdminProfileDetailPageState
                 ),
                 const SizedBox(height: 14),
                 if (_isCaptain) ...[
-                  _CaptainDocumentsSection(user: user, isAr: isAr),
+                  _CaptainDocumentsSection(
+                    user: user,
+                    isAr: isAr,
+                    onUpload: _uploadCaptainDocument,
+                  ),
                   const SizedBox(height: 14),
                   _CaptainOrdersSection(
                     orders: ((data['orders'] ?? []) as List)
@@ -416,34 +434,44 @@ class _CaptainOrdersSection extends StatelessWidget {
 class _CaptainDocumentsSection extends StatelessWidget {
   final UserModel user;
   final bool isAr;
+  final Future<void> Function(String field, String imagePath) onUpload;
 
-  const _CaptainDocumentsSection({required this.user, required this.isAr});
+  const _CaptainDocumentsSection({
+    required this.user,
+    required this.isAr,
+    required this.onUpload,
+  });
 
   @override
   Widget build(BuildContext context) {
     final documents = [
       (
         title: isAr ? 'الصورة الشخصية' : 'Photo personnelle',
+        field: 'profile_image',
         path: user.avatar,
         icon: Icons.person_outline,
       ),
       (
         title: isAr ? 'بطاقة التعريف' : 'Carte d’identité',
+        field: 'id_card_image',
         path: user.idCardImage,
         icon: Icons.badge_outlined,
       ),
       (
         title: isAr ? 'صورة الموتو' : 'Photo moto',
+        field: 'vehicle_image',
         path: user.vehicleImage,
         icon: Icons.two_wheeler_outlined,
       ),
       (
         title: isAr ? 'ترخيص المركبة' : 'Immatriculation',
+        field: 'vehicle_registration_image',
         path: user.vehicleRegistrationImage,
         icon: Icons.description_outlined,
       ),
       (
         title: isAr ? 'صورة التصريح' : 'Permis',
+        field: 'permit_image',
         path: user.permitImage,
         icon: Icons.assignment_ind_outlined,
       ),
@@ -456,9 +484,11 @@ class _CaptainDocumentsSection extends StatelessWidget {
           .map(
             (document) => _DocumentReviewCard(
               title: document.title,
+              field: document.field,
               path: document.path,
               icon: document.icon,
               isAr: isAr,
+              onUpload: onUpload,
             ),
           )
           .toList(),
@@ -468,15 +498,19 @@ class _CaptainDocumentsSection extends StatelessWidget {
 
 class _DocumentReviewCard extends StatelessWidget {
   final String title;
+  final String field;
   final String? path;
   final IconData icon;
   final bool isAr;
+  final Future<void> Function(String field, String imagePath) onUpload;
 
   const _DocumentReviewCard({
     required this.title,
+    required this.field,
     required this.path,
     required this.icon,
     required this.isAr,
+    required this.onUpload,
   });
 
   @override
@@ -494,9 +528,51 @@ class _DocumentReviewCard extends StatelessWidget {
               ? (isAr ? 'اضغط لمراجعة الصورة' : 'Toucher pour vérifier')
               : (isAr ? 'لا توجد صورة محفوظة' : 'Aucune image enregistrée'),
         ),
-        trailing: hasImage ? const Icon(Icons.visibility_outlined) : null,
+        trailing: Wrap(
+          spacing: 4,
+          children: [
+            if (hasImage)
+              IconButton(
+                tooltip: isAr ? 'عرض' : 'Voir',
+                onPressed: () => _openPreview(context, url),
+                icon: const Icon(Icons.visibility_outlined),
+              ),
+            IconButton(
+              tooltip: isAr ? 'تعديل الصورة' : 'Modifier',
+              onPressed: () => _pickAndUpload(context),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _pickAndUpload(BuildContext context) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (picked == null) return;
+    if (!context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await onUpload(field, picked.path);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(isAr ? 'تم تحديث الصورة' : 'Image mise à jour'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(isAr ? 'تعذر تحديث الصورة' : 'Mise à jour impossible'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   void _openPreview(BuildContext context, String url) {
