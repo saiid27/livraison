@@ -186,7 +186,7 @@ class _ClientNewOrderPageState extends ConsumerState<ClientNewOrderPage> {
                       icon: Icons.location_on_outlined,
                       iconColor: AppColors.primary,
                       isAr: isAr,
-                      openUp: true,
+                      openUp: false,
                       locations: locations,
                       onChanged: (_) => _updateTrialPrice(locations),
                     ),
