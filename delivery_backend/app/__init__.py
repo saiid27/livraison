@@ -102,11 +102,11 @@ SUPPORT_PAGE_TEMPLATE = """
 
 PRIVACY_PAGE_TEMPLATE = """
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>سياسة الخصوصية - mayahsar</title>
+  <title>Politique de confidentialité - mayahsar</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -114,7 +114,7 @@ PRIVACY_PAGE_TEMPLATE = """
       background: #f6f8fc;
       color: #172033;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.8;
+      line-height: 1.7;
     }
     header { background: #2563eb; color: white; padding: 28px 20px; text-align: center; }
     main { max-width: 860px; margin: 0 auto; padding: 22px; }
@@ -130,41 +130,40 @@ PRIVACY_PAGE_TEMPLATE = """
     p { margin: 0; color: #475569; }
     ul { margin: 8px 0 0; color: #475569; }
     a { color: #2563eb; font-weight: 800; }
-    .ltr { direction: ltr; unicode-bidi: embed; }
     .muted { color: #94a3b8; font-size: 13px; text-align: center; margin-top: 18px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>سياسة الخصوصية</h1>
-    <p>تطبيق mayahsar</p>
+    <h1>Politique de confidentialité</h1>
+    <p>Application mayahsar</p>
   </header>
   <main>
     <section>
-      <h2>المعلومات التي نجمعها</h2>
-      <p>نجمع المعلومات اللازمة لتشغيل خدمات التوصيل والحسابات، مثل الاسم، رقم الهاتف، نوع الحساب، تفاصيل الطلبات، وصور الدفع أو الوثائق عند الحاجة.</p>
+      <h2>Informations que nous collectons</h2>
+      <p>Nous collectons les informations nécessaires au fonctionnement des services de livraison et des comptes, comme le nom, le numéro de téléphone, le type de compte, les détails des commandes, ainsi que les images de paiement ou les documents lorsque cela est nécessaire.</p>
     </section>
     <section>
-      <h2>استخدام المعلومات</h2>
-      <p>نستخدم المعلومات لإنشاء الحسابات، معالجة الطلبات، التواصل مع المستخدمين، مراجعة حسابات الكباتنة والتجار، وتحسين أمان الخدمة.</p>
+      <h2>Utilisation des informations</h2>
+      <p>Nous utilisons ces informations pour créer les comptes, traiter les commandes, communiquer avec les utilisateurs, vérifier les comptes des capitaines et des commerçants, et améliorer la sécurité du service.</p>
     </section>
     <section>
-      <h2>الصور والوثائق</h2>
-      <p>قد يرفع المستخدم صورًا مثل إثبات الدفع، صور المنتجات، أو وثائق الكابتن. تُستخدم هذه الملفات فقط للتحقق وتشغيل الخدمة.</p>
+      <h2>Images et documents</h2>
+      <p>Les utilisateurs peuvent importer des images comme des preuves de paiement, des photos de produits ou des documents de capitaine. Ces fichiers sont utilisés uniquement pour la vérification et le fonctionnement du service.</p>
     </section>
     <section>
-      <h2>مشاركة البيانات</h2>
-      <p>لا نبيع بيانات المستخدمين. قد تظهر بعض معلومات الطلب الضرورية للطرف المعني فقط، مثل الكابتن أو التاجر، لإكمال الخدمة.</p>
+      <h2>Partage des données</h2>
+      <p>Nous ne vendons pas les données des utilisateurs. Certaines informations nécessaires à une commande peuvent être partagées uniquement avec la partie concernée, comme le capitaine ou le commerçant, afin de finaliser le service.</p>
     </section>
     <section>
-      <h2>حذف الحساب</h2>
-      <p>يمكن للمستخدم طلب حذف حسابه من داخل التطبيق أو عبر التواصل مع الدعم. سنراجع الطلب ونحذف البيانات وفق المتطلبات التشغيلية والقانونية.</p>
+      <h2>Suppression du compte</h2>
+      <p>L'utilisateur peut demander la suppression de son compte depuis l'application ou en contactant le support. Nous examinerons la demande et supprimerons les données conformément aux exigences opérationnelles et légales applicables.</p>
     </section>
     <section>
-      <h2>التواصل معنا</h2>
-      <p>لأي سؤال حول الخصوصية، تواصل معنا عبر رقم المركز: <span class="ltr">+222 43 76 01 28</span> أو عبر <a href="/support">صفحة الدعم</a>.</p>
+      <h2>Nous contacter</h2>
+      <p>Pour toute question concernant la confidentialité, contactez-nous au +222 43 76 01 28 ou via la <a href="/support">page de support</a>.</p>
     </section>
-    <div class="muted">آخر تحديث: 2026</div>
+    <div class="muted">Dernière mise à jour : 2026</div>
   </main>
 </body>
 </html>
