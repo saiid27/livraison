@@ -20,6 +20,7 @@ const _toujounineAfarcoPrice = 120.0;
 const _toujounineBmdPrice = 140.0;
 const _toujounineDarSalamaPrice = 180.0;
 const _toujounineTwentyFourthPrice = 110.0;
+const _toujounineAtrikStadePrice = 150.0;
 
 final deliveryLocationListProvider = FutureProvider.autoDispose<List<String>>((
   ref,
@@ -108,9 +109,13 @@ bool _isDarSalamaLocation(String name) =>
 bool _isTwentyFourthLocation(String name) =>
     _hasLocationTerm(name, ['الرابع والعشرين']);
 
+bool _isAtrikStadeLocation(String name) =>
+    _hasLocationTerm(name, ['اطريك استاد']);
+
 double? _specialDeliveryPrice(String pickup, String delivery) {
   final toujounineRules = <({bool Function(String) matcher, double price})>[
     (matcher: _isTwentyFourthLocation, price: _toujounineTwentyFourthPrice),
+    (matcher: _isAtrikStadeLocation, price: _toujounineAtrikStadePrice),
     (matcher: _isTensouelimLocation, price: _toujounineTensouelimPrice),
     (matcher: _isDarNaimLocation, price: _toujounineDarNaimPrice),
     (matcher: _isNaibLocation, price: _toujounineNaibPrice),

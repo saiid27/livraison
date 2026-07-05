@@ -18,6 +18,7 @@ TOUJOUNINE_AFARCO_PRICE = 120.0
 TOUJOUNINE_BMD_PRICE = 140.0
 TOUJOUNINE_DAR_SALAMA_PRICE = 180.0
 TOUJOUNINE_TWENTY_FOURTH_PRICE = 110.0
+TOUJOUNINE_ATRIK_STADE_PRICE = 150.0
 
 DEFAULT_DELIVERY_LOCATIONS = {
     'كرفور تنسويلم',
@@ -615,9 +616,14 @@ def _is_twenty_fourth_location(name):
     return _has_location_term(name, "الرابع والعشرين")
 
 
+def _is_atrik_stade_location(name):
+    return _has_location_term(name, "اطريك استاد")
+
+
 def _special_delivery_price(pickup, delivery):
     toujounine_rules = (
         (_is_twenty_fourth_location, TOUJOUNINE_TWENTY_FOURTH_PRICE),
+        (_is_atrik_stade_location, TOUJOUNINE_ATRIK_STADE_PRICE),
         (_is_tensouelim_location, TOUJOUNINE_TENSOUELIM_PRICE),
         (_is_dar_naim_location, TOUJOUNINE_DAR_NAIM_PRICE),
         (_is_naib_location, TOUJOUNINE_NAIB_PRICE),
