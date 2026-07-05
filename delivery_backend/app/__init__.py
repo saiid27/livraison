@@ -100,6 +100,77 @@ SUPPORT_PAGE_TEMPLATE = """
 """
 
 
+PRIVACY_PAGE_TEMPLATE = """
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>سياسة الخصوصية - mayahsar</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f6f8fc;
+      color: #172033;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.8;
+    }
+    header { background: #2563eb; color: white; padding: 28px 20px; text-align: center; }
+    main { max-width: 860px; margin: 0 auto; padding: 22px; }
+    section {
+      background: white;
+      border: 1px solid #e5eaf3;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 12px 30px rgba(23, 32, 51, 0.05);
+    }
+    h1, h2 { margin: 0 0 10px; }
+    p { margin: 0; color: #475569; }
+    ul { margin: 8px 0 0; color: #475569; }
+    a { color: #2563eb; font-weight: 800; }
+    .ltr { direction: ltr; unicode-bidi: embed; }
+    .muted { color: #94a3b8; font-size: 13px; text-align: center; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>سياسة الخصوصية</h1>
+    <p>تطبيق mayahsar</p>
+  </header>
+  <main>
+    <section>
+      <h2>المعلومات التي نجمعها</h2>
+      <p>نجمع المعلومات اللازمة لتشغيل خدمات التوصيل والحسابات، مثل الاسم، رقم الهاتف، نوع الحساب، تفاصيل الطلبات، وصور الدفع أو الوثائق عند الحاجة.</p>
+    </section>
+    <section>
+      <h2>استخدام المعلومات</h2>
+      <p>نستخدم المعلومات لإنشاء الحسابات، معالجة الطلبات، التواصل مع المستخدمين، مراجعة حسابات الكباتنة والتجار، وتحسين أمان الخدمة.</p>
+    </section>
+    <section>
+      <h2>الصور والوثائق</h2>
+      <p>قد يرفع المستخدم صورًا مثل إثبات الدفع، صور المنتجات، أو وثائق الكابتن. تُستخدم هذه الملفات فقط للتحقق وتشغيل الخدمة.</p>
+    </section>
+    <section>
+      <h2>مشاركة البيانات</h2>
+      <p>لا نبيع بيانات المستخدمين. قد تظهر بعض معلومات الطلب الضرورية للطرف المعني فقط، مثل الكابتن أو التاجر، لإكمال الخدمة.</p>
+    </section>
+    <section>
+      <h2>حذف الحساب</h2>
+      <p>يمكن للمستخدم طلب حذف حسابه من داخل التطبيق أو عبر التواصل مع الدعم. سنراجع الطلب ونحذف البيانات وفق المتطلبات التشغيلية والقانونية.</p>
+    </section>
+    <section>
+      <h2>التواصل معنا</h2>
+      <p>لأي سؤال حول الخصوصية، تواصل معنا عبر رقم المركز: <span class="ltr">+222 43 76 01 28</span> أو عبر <a href="/support">صفحة الدعم</a>.</p>
+    </section>
+    <div class="muted">آخر تحديث: 2026</div>
+  </main>
+</body>
+</html>
+"""
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -145,6 +216,11 @@ def create_app():
     @app.route('/api/support')
     def support_page():
         return render_template_string(SUPPORT_PAGE_TEMPLATE)
+
+    @app.route('/privacy')
+    @app.route('/api/privacy')
+    def privacy_page():
+        return render_template_string(PRIVACY_PAGE_TEMPLATE)
 
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
