@@ -21,6 +21,17 @@ const _toujounineBmdPrice = 140.0;
 const _toujounineDarSalamaPrice = 180.0;
 const _toujounineTwentyFourthPrice = 110.0;
 const _toujounineAtrikStadePrice = 150.0;
+const _tensouelimDarNaimPrice = 100.0;
+const _tensouelimZaatarPrice = 100.0;
+const _tensouelimArafatPrice = 100.0;
+const _tensouelimBeikaPrice = 130.0;
+const _tensouelimTeyaretPrice = 120.0;
+const _tensouelimEtihadiaPrice = 150.0;
+const _tensouelimTarhilPrice = 150.0;
+const _tensouelimMelahPrice = 110.0;
+const _tensouelimFalloujaPrice = 100.0;
+const _tensouelimTwentyFourthPrice = 100.0;
+const _tensouelimMadridPrice = 100.0;
 
 final deliveryLocationListProvider = FutureProvider.autoDispose<List<String>>((
   ref,
@@ -112,6 +123,8 @@ bool _isTwentyFourthLocation(String name) =>
 bool _isAtrikStadeLocation(String name) =>
     _hasLocationTerm(name, ['اطريك استاد']);
 
+bool _isZaatarLocation(String name) => _hasLocationTerm(name, ['الزعتر']);
+
 double? _specialDeliveryPrice(String pickup, String delivery) {
   final toujounineRules = <({bool Function(String) matcher, double price})>[
     (matcher: _isTwentyFourthLocation, price: _toujounineTwentyFourthPrice),
@@ -134,6 +147,26 @@ double? _specialDeliveryPrice(String pickup, String delivery) {
   for (final rule in toujounineRules) {
     if ((_isToujounineLocation(pickup) && rule.matcher(delivery)) ||
         (rule.matcher(pickup) && _isToujounineLocation(delivery))) {
+      return rule.price;
+    }
+  }
+
+  final tensouelimRules = <({bool Function(String) matcher, double price})>[
+    (matcher: _isTwentyFourthLocation, price: _tensouelimTwentyFourthPrice),
+    (matcher: _isDarNaimLocation, price: _tensouelimDarNaimPrice),
+    (matcher: _isZaatarLocation, price: _tensouelimZaatarPrice),
+    (matcher: _isArafatLocation, price: _tensouelimArafatPrice),
+    (matcher: _isBeikaLocation, price: _tensouelimBeikaPrice),
+    (matcher: _isTeyaretLocation, price: _tensouelimTeyaretPrice),
+    (matcher: _isEtihadiaLocation, price: _tensouelimEtihadiaPrice),
+    (matcher: _isTarhilLocation, price: _tensouelimTarhilPrice),
+    (matcher: _isMelahLocation, price: _tensouelimMelahPrice),
+    (matcher: _isFalloujaLocation, price: _tensouelimFalloujaPrice),
+    (matcher: _isMadridLocation, price: _tensouelimMadridPrice),
+  ];
+  for (final rule in tensouelimRules) {
+    if ((_isTensouelimLocation(pickup) && rule.matcher(delivery)) ||
+        (rule.matcher(pickup) && _isTensouelimLocation(delivery))) {
       return rule.price;
     }
   }

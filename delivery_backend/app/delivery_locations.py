@@ -19,6 +19,17 @@ TOUJOUNINE_BMD_PRICE = 140.0
 TOUJOUNINE_DAR_SALAMA_PRICE = 180.0
 TOUJOUNINE_TWENTY_FOURTH_PRICE = 110.0
 TOUJOUNINE_ATRIK_STADE_PRICE = 150.0
+TENSOUELIM_DAR_NAIM_PRICE = 100.0
+TENSOUELIM_ZAATAR_PRICE = 100.0
+TENSOUELIM_ARAFAT_PRICE = 100.0
+TENSOUELIM_BEIKA_PRICE = 130.0
+TENSOUELIM_TEYARET_PRICE = 120.0
+TENSOUELIM_ETIHADIA_PRICE = 150.0
+TENSOUELIM_TARHIL_PRICE = 150.0
+TENSOUELIM_MELAH_PRICE = 110.0
+TENSOUELIM_FALLOUJA_PRICE = 100.0
+TENSOUELIM_TWENTY_FOURTH_PRICE = 100.0
+TENSOUELIM_MADRID_PRICE = 100.0
 
 DEFAULT_DELIVERY_LOCATIONS = {
     'كرفور تنسويلم',
@@ -620,6 +631,10 @@ def _is_atrik_stade_location(name):
     return _has_location_term(name, "اطريك استاد")
 
 
+def _is_zaatar_location(name):
+    return _has_location_term(name, "الزعتر")
+
+
 def _special_delivery_price(pickup, delivery):
     toujounine_rules = (
         (_is_twenty_fourth_location, TOUJOUNINE_TWENTY_FOURTH_PRICE),
@@ -642,6 +657,24 @@ def _special_delivery_price(pickup, delivery):
     for matcher, price in toujounine_rules:
         if (_is_toujounine_location(pickup) and matcher(delivery)) or (
             matcher(pickup) and _is_toujounine_location(delivery)
+        ):
+            return price
+    tensouelim_rules = (
+        (_is_twenty_fourth_location, TENSOUELIM_TWENTY_FOURTH_PRICE),
+        (_is_dar_naim_location, TENSOUELIM_DAR_NAIM_PRICE),
+        (_is_zaatar_location, TENSOUELIM_ZAATAR_PRICE),
+        (_is_arafat_location, TENSOUELIM_ARAFAT_PRICE),
+        (_is_beika_location, TENSOUELIM_BEIKA_PRICE),
+        (_is_teyaret_location, TENSOUELIM_TEYARET_PRICE),
+        (_is_etihadia_location, TENSOUELIM_ETIHADIA_PRICE),
+        (_is_tarhil_location, TENSOUELIM_TARHIL_PRICE),
+        (_is_melah_location, TENSOUELIM_MELAH_PRICE),
+        (_is_fallouja_location, TENSOUELIM_FALLOUJA_PRICE),
+        (_is_madrid_location, TENSOUELIM_MADRID_PRICE),
+    )
+    for matcher, price in tensouelim_rules:
+        if (_is_tensouelim_location(pickup) and matcher(delivery)) or (
+            matcher(pickup) and _is_tensouelim_location(delivery)
         ):
             return price
     return None
