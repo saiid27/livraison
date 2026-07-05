@@ -170,6 +170,151 @@ PRIVACY_PAGE_TEMPLATE = """
 """
 
 
+ACCOUNT_DELETION_PAGE_TEMPLATE = """
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>حذف الحساب - mayahsar</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f6f8fc;
+      color: #172033;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.7;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+    }
+    main {
+      width: min(560px, 100%);
+      background: white;
+      border: 1px solid #e5eaf3;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
+    }
+    .mark {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 22px;
+      background: #fee2e2;
+      color: #ef4444;
+      font-size: 34px;
+      font-weight: 900;
+    }
+    h1 { margin: 0; font-size: 28px; text-align: center; }
+    p { margin: 10px 0 18px; color: #667085; }
+    label { display: block; margin: 12px 0 6px; font-weight: 800; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid #dbe3ef;
+      border-radius: 14px;
+      padding: 14px;
+      font: inherit;
+      background: #fbfdff;
+      color: #172033;
+    }
+    input { direction: ltr; text-align: right; }
+    textarea { min-height: 120px; resize: vertical; }
+    button {
+      width: 100%;
+      margin-top: 16px;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: #ef4444;
+      color: white;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.65; cursor: wait; }
+    .notice {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 14px;
+    }
+    .success { color: #047857; border-color: #bbf7d0; background: #f0fdf4; }
+    .error { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
+    a { color: #2563eb; font-weight: 800; }
+    .muted { margin-top: 16px; font-size: 13px; color: #94a3b8; text-align: center; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">!</div>
+    <h1>طلب حذف الحساب</h1>
+    <p>
+      يمكنك طلب حذف حسابك من تطبيق mayahsar عبر هذه الصفحة. بعد إرسال الطلب،
+      ستراجعه الإدارة وتحذف الحساب والبيانات المرتبطة به حسب المتطلبات التشغيلية والقانونية.
+    </p>
+    <form id="deletionForm">
+      <label for="phone">رقم الهاتف المرتبط بالحساب</label>
+      <input id="phone" name="phone" type="tel" placeholder="مثال: 43760128" required>
+
+      <label for="reason">سبب طلب حذف الحساب</label>
+      <textarea id="reason" name="reason" placeholder="اكتب سبب حذف الحساب" required></textarea>
+
+      <button id="submitButton" type="submit">إرسال طلب الحذف</button>
+    </form>
+    <div id="message" class="notice">
+      إذا احتجت مساعدة يمكنك التواصل مع الدعم عبر <a href="/support">صفحة الدعم</a>.
+    </div>
+    <div class="muted">mayahsar account deletion</div>
+  </main>
+  <script>
+    const form = document.getElementById('deletionForm');
+    const button = document.getElementById('submitButton');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      message.className = 'notice';
+      message.textContent = 'جاري إرسال الطلب...';
+
+      const payload = {
+        phone: document.getElementById('phone').value.trim(),
+        reason: document.getElementById('reason').value.trim(),
+      };
+
+      try {
+        const response = await fetch('/api/auth/account-deletion-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json().catch(() => ({}));
+        message.className = response.ok ? 'notice success' : 'notice error';
+        message.textContent = data.message || (
+          response.ok ? 'تم إرسال طلب حذف الحساب.' : 'تعذر إرسال طلب الحذف.'
+        );
+        if (response.ok) form.reset();
+      } catch (error) {
+        message.className = 'notice error';
+        message.textContent = 'تعذر الاتصال بالخادم. حاول مرة أخرى لاحقًا.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+"""
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -220,6 +365,11 @@ def create_app():
     @app.route('/api/privacy')
     def privacy_page():
         return render_template_string(PRIVACY_PAGE_TEMPLATE)
+
+    @app.route('/account-deletion')
+    @app.route('/api/account-deletion')
+    def account_deletion_page():
+        return render_template_string(ACCOUNT_DELETION_PAGE_TEMPLATE)
 
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
