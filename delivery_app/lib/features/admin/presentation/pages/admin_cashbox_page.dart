@@ -291,16 +291,10 @@ class _TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpense = transaction.type == 'expense';
-    final isCommission = transaction.type == 'commission';
-    final isRefund = transaction.type == 'commission_refund';
-    final color = (isExpense || isRefund) ? AppColors.error : AppColors.success;
+    final color = isExpense ? AppColors.error : AppColors.success;
     final date = DateFormat('dd/MM/yyyy HH:mm').format(transaction.createdAt);
     final title = isExpense
         ? (isAr ? 'مصروف' : 'Dépense')
-        : isRefund
-        ? (isAr ? 'إرجاع عمولة' : 'Remboursement commission')
-        : isCommission
-        ? (isAr ? 'عمولة توصيل' : 'Commission livraison')
         : (isAr ? 'شحن' : 'Recharge');
     final subtitle = isExpense
         ? (transaction.description ?? '—')
@@ -316,13 +310,7 @@ class _TransactionTile extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(
-            isExpense
-                ? Icons.remove
-                : isRefund
-                ? Icons.undo_outlined
-                : isCommission
-                ? Icons.delivery_dining_outlined
-                : Icons.add_card_outlined,
+            isExpense ? Icons.remove : Icons.add_card_outlined,
             color: color,
           ),
         ),
@@ -330,7 +318,7 @@ class _TransactionTile extends StatelessWidget {
         subtitle: Text('$subtitle\n$date'),
         isThreeLine: true,
         trailing: Text(
-          '${(isExpense || isRefund) ? '-' : '+'}${transaction.amount.toStringAsFixed(0)} MRU',
+          '${isExpense ? '-' : '+'}${transaction.amount.toStringAsFixed(0)} MRU',
           style: TextStyle(color: color, fontWeight: FontWeight.w900),
         ),
       ),

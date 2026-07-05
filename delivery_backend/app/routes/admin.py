@@ -72,13 +72,13 @@ def _cashbox_totals():
             db.func.sum(CashTransaction.amount),
             0,
         )
-    ).filter(CashTransaction.transaction_type.in_(('recharge', 'commission'))).scalar()
+    ).filter(CashTransaction.transaction_type == 'recharge').scalar()
     expenses = db.session.query(
         db.func.coalesce(
             db.func.sum(CashTransaction.amount),
             0,
         )
-    ).filter(CashTransaction.transaction_type.in_(('expense', 'commission_refund'))).scalar()
+    ).filter(CashTransaction.transaction_type == 'expense').scalar()
     return float(incomes or 0), float(expenses or 0)
 
 
@@ -837,7 +837,9 @@ def cashbox_summary():
     db.session.commit()
 
     total_recharges, total_expenses = _cashbox_totals()
-    transactions = CashTransaction.query.order_by(
+    transactions = CashTransaction.query.filter(
+        CashTransaction.transaction_type.in_(('recharge', 'expense')),
+    ).order_by(
         CashTransaction.created_at.desc(),
         CashTransaction.id.desc(),
     ).all()
