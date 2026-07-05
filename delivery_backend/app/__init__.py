@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, send_file, jsonify
+from flask import Flask, send_from_directory, send_file, jsonify, render_template_string
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
@@ -14,6 +14,90 @@ load_dotenv()
 db = SQLAlchemy()
 jwt = JWTManager()
 bcrypt = Bcrypt()
+
+
+SUPPORT_PAGE_TEMPLATE = """
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الدعم - mayahsar</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: #f6f8fc;
+      color: #172033;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(460px, 100%);
+      background: white;
+      border: 1px solid #e5eaf3;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
+      text-align: center;
+    }
+    .mark {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 22px;
+      background: #eaf1ff;
+      color: #2563eb;
+      font-size: 34px;
+      font-weight: 900;
+    }
+    h1 { margin: 0; font-size: 28px; }
+    p { margin: 10px 0 18px; color: #667085; line-height: 1.7; }
+    .phone {
+      margin: 18px 0;
+      padding: 14px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      direction: ltr;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .actions { display: grid; gap: 10px; }
+    a {
+      display: block;
+      text-decoration: none;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-weight: 900;
+    }
+    .whatsapp { background: #16a34a; color: white; }
+    .call { background: #2563eb; color: white; }
+    .muted { margin-top: 16px; font-size: 13px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">?</div>
+    <h1>الدعم والمساعدة</h1>
+    <p>لأي مشكلة في الطلبات أو الحسابات، تواصل معنا عبر رقم المركز.</p>
+    <div class="phone">+222 43 76 01 28</div>
+    <div class="actions">
+      <a class="whatsapp" href="https://wa.me/22243760128">فتح واتساب</a>
+      <a class="call" href="tel:+22243760128">اتصال بالمركز</a>
+    </div>
+    <div class="muted">mayahsar support</div>
+  </main>
+</body>
+</html>
+"""
 
 
 def create_app():
@@ -56,6 +140,11 @@ def create_app():
     def health():
         db.session.execute(text('SELECT 1'))
         return jsonify({'status': 'ok'}), 200
+
+    @app.route('/support')
+    @app.route('/api/support')
+    def support_page():
+        return render_template_string(SUPPORT_PAGE_TEMPLATE)
 
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
