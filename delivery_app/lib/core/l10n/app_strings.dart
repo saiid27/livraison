@@ -108,7 +108,6 @@ abstract class AppStrings {
   String get myProfile;
   String get personalInfo;
   String get orderHistory;
-  String get notifications;
   String get helpSupport;
 
   // Livreur
@@ -378,8 +377,6 @@ class FrStrings extends AppStrings {
   String get personalInfo => 'Informations personnelles';
   @override
   String get orderHistory => 'Historique des commandes';
-  @override
-  String get notifications => 'Notifications';
   @override
   String get helpSupport => 'Aide & Support';
 
@@ -710,8 +707,6 @@ class ArStrings extends AppStrings {
   String get personalInfo => 'المعلومات الشخصية';
   @override
   String get orderHistory => 'سجل الطلبات';
-  @override
-  String get notifications => 'الإشعارات';
   @override
   String get helpSupport => 'المساعدة والدعم';
 

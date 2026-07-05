@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/logout_button.dart';
 import '../../../../core/widgets/language_button.dart';
@@ -10,10 +12,69 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 class ClientProfilePage extends ConsumerWidget {
   const ClientProfilePage({super.key});
 
+  static final Uri _whatsAppUri = Uri.parse(
+    'whatsapp://send?phone=${AppConstants.supportWhatsAppPhone}',
+  );
+  static final Uri _whatsAppWebUri = Uri.parse(
+    'https://wa.me/${AppConstants.supportWhatsAppPhone}',
+  );
+
+  Future<void> _openWhatsApp() async {
+    final opened = await launchUrl(
+      _whatsAppUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (opened) return;
+
+    await launchUrl(_whatsAppWebUri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _showPersonalInfo(
+    BuildContext context,
+    WidgetRef ref,
+    bool isAr,
+  ) async {
+    final user = ref.read(authProvider).user;
+    if (user == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.4,
+        minChildSize: 0.3,
+        maxChildSize: 0.6,
+        builder: (_, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.all(18),
+          children: [
+            Text(
+              isAr ? 'المعلومات الشخصية' : 'Informations personnelles',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _InfoTile(label: isAr ? 'الاسم' : 'Nom', value: user.name),
+            _InfoTile(
+              label: isAr ? 'رقم الهاتف' : 'Téléphone',
+              value: user.phone,
+            ),
+            _InfoTile(label: isAr ? 'البريد' : 'Email', value: user.email),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final s = ref.watch(stringsProvider);
+    final isAr = ref.watch(localeProvider).languageCode == 'ar';
 
     return Scaffold(
       appBar: AppBar(
@@ -50,10 +111,13 @@ class ClientProfilePage extends ConsumerWidget {
               child: Text(s.roleClient, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(height: 32),
-            _ProfileItem(icon: Icons.person_outlined, title: s.personalInfo, onTap: () {}),
+            _ProfileItem(
+              icon: Icons.person_outlined,
+              title: s.personalInfo,
+              onTap: () => _showPersonalInfo(context, ref, isAr),
+            ),
             _ProfileItem(icon: Icons.receipt_long, title: s.orderHistory, onTap: () => context.go('/client/orders')),
-            _ProfileItem(icon: Icons.notifications_outlined, title: s.notifications, onTap: () {}),
-            _ProfileItem(icon: Icons.help_outline, title: s.helpSupport, onTap: () {}),
+            _ProfileItem(icon: Icons.help_outline, title: s.helpSupport, onTap: _openWhatsApp),
             const SizedBox(height: 16),
             _ProfileItem(
               icon: Icons.logout,
@@ -82,6 +146,32 @@ class ClientProfilePage extends ConsumerWidget {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        label,
+        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+      ),
+      subtitle: Text(
+        value.isEmpty ? '-' : value,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
