@@ -461,14 +461,14 @@ WEBSITE_PAGE_TEMPLATE = """
     <section class="cards">
       <article class="install-card">
         <img class="app-icon" src="/static/mayahsar_app_icon.png" alt="مايحصر">
-        <p>رابط تثبيت التطبيق لهواتف Android.</p>
-        <a class="install-link" href="#">
+        <p>تحميل مباشر لتثبيت التطبيق على هواتف Android.</p>
+        <a class="install-link" href="/static/mayahsar.apk" download>
           <span class="button-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" role="img">
               <path d="M17.6 9.48l1.43-2.48a.45.45 0 0 0-.78-.45l-1.45 2.51A8.04 8.04 0 0 0 12 7a8.04 8.04 0 0 0-4.8 1.56L5.75 6.05a.45.45 0 0 0-.78.45L6.4 8.98A7.56 7.56 0 0 0 4 14.5V16h16v-1.5a7.56 7.56 0 0 0-2.4-5.02ZM8.5 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm7 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM5 17h14v3a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-3Z"/>
             </svg>
           </span>
-          <span>تثبيت التطبيق</span>
+          <span>تحميل APK</span>
         </a>
       </article>
       <article class="install-card">
