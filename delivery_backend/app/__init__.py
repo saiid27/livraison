@@ -384,15 +384,19 @@ WEBSITE_PAGE_TEMPLATE = """
       box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
       text-align: center;
     }
-    .install-card h3 {
-      margin: 0 0 8px;
-      color: #1e293b;
-      font-size: 22px;
-    }
     .install-card p {
       margin: 0;
       color: #64748b;
       font-size: 15px;
+    }
+    .app-icon {
+      width: 118px;
+      height: 118px;
+      display: block;
+      margin: 0 auto 14px;
+      border-radius: 22px;
+      object-fit: cover;
+      box-shadow: 0 12px 24px rgba(23, 32, 51, 0.1);
     }
     .install-link {
       display: inline-flex;
@@ -456,7 +460,7 @@ WEBSITE_PAGE_TEMPLATE = """
     </section>
     <section class="cards">
       <article class="install-card">
-        <h3>أندرويد</h3>
+        <img class="app-icon" src="/static/mayahsar_app_icon.png" alt="مايحصر">
         <p>رابط تثبيت التطبيق لهواتف Android.</p>
         <a class="install-link" href="#">
           <span class="button-icon" aria-hidden="true">
@@ -464,15 +468,15 @@ WEBSITE_PAGE_TEMPLATE = """
               <path d="M17.6 9.48l1.43-2.48a.45.45 0 0 0-.78-.45l-1.45 2.51A8.04 8.04 0 0 0 12 7a8.04 8.04 0 0 0-4.8 1.56L5.75 6.05a.45.45 0 0 0-.78.45L6.4 8.98A7.56 7.56 0 0 0 4 14.5V16h16v-1.5a7.56 7.56 0 0 0-2.4-5.02ZM8.5 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm7 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM5 17h14v3a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-3Z"/>
             </svg>
           </span>
-          <span>تثبيت للأندرويد</span>
+          <span>تثبيت التطبيق</span>
         </a>
       </article>
       <article class="install-card">
-        <h3>آيفون</h3>
+        <img class="app-icon" src="/static/mayahsar_app_icon.png" alt="مايحصر">
         <p>رابط تثبيت التطبيق لهواتف iPhone.</p>
         <a class="install-link iphone" href="#">
           <span class="button-icon"></span>
-          <span>تثبيت آيفون</span>
+          <span>تثبيت التطبيق</span>
         </a>
       </article>
     </section>
