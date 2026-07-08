@@ -337,7 +337,7 @@ WEBSITE_PAGE_TEMPLATE = """
     header {
       background: #2563eb;
       color: white;
-      padding: 18px 22px;
+      padding: 12px 18px;
       box-shadow: 0 12px 30px rgba(37, 99, 235, 0.18);
     }
     .header-inner,
@@ -348,8 +348,8 @@ WEBSITE_PAGE_TEMPLATE = """
     }
     .brand {
       margin: 0;
-      font-size: clamp(24px, 6vw, 42px);
-      font-weight: 900;
+      font-size: clamp(18px, 4.5vw, 26px);
+      font-weight: 800;
       letter-spacing: 0;
     }
     main {
@@ -364,6 +364,7 @@ WEBSITE_PAGE_TEMPLATE = """
       border-radius: 18px;
       padding: 24px;
       box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
+      text-align: center;
     }
     h2 {
       margin: 0 0 10px;
@@ -374,6 +375,31 @@ WEBSITE_PAGE_TEMPLATE = """
       margin: 0;
       color: #64748b;
       font-size: 17px;
+    }
+    .install-icon {
+      width: 74px;
+      height: 74px;
+      margin: 0 auto 16px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      background: #eaf1ff;
+      color: #2563eb;
+      font-size: 38px;
+      font-weight: 900;
+    }
+    .install-link {
+      display: inline-block;
+      margin-top: 20px;
+      min-width: min(260px, 100%);
+      padding: 14px 18px;
+      border-radius: 14px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 900;
+      box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
     }
     footer {
       border-top: 1px solid #e2e8f0;
@@ -393,11 +419,10 @@ WEBSITE_PAGE_TEMPLATE = """
   </header>
   <main>
     <section class="panel">
-      <h2>خدمات التوصيل والطلبات</h2>
-      <p>
-        منصة مايحصر تساعد الزبائن والتجار والكباتن على إدارة الطلبات والتوصيل
-        بطريقة سهلة وواضحة.
-      </p>
+      <div class="install-icon">↓</div>
+      <h2>تثبيت تطبيق مايحصر</h2>
+      <p>اضغط على رابط التثبيت لتحميل التطبيق على هاتفك.</p>
+      <a class="install-link" href="#">تثبيت التطبيق</a>
     </section>
   </main>
   <footer>
