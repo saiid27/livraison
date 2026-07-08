@@ -394,24 +394,11 @@ WEBSITE_PAGE_TEMPLATE = """
       color: #64748b;
       font-size: 15px;
     }
-    .install-icon {
-      width: 74px;
-      height: 74px;
-      margin: 0 auto 16px;
-      display: grid;
-      place-items: center;
-      border-radius: 20px;
-      background: #eaf1ff;
-      color: #2563eb;
-      font-size: 38px;
-      font-weight: 900;
-    }
-    .install-icon.iphone {
-      background: #f1f5f9;
-      color: #111827;
-    }
     .install-link {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       margin-top: 20px;
       min-width: min(260px, 100%);
       padding: 14px 18px;
@@ -422,6 +409,11 @@ WEBSITE_PAGE_TEMPLATE = """
       font-size: 18px;
       font-weight: 900;
       box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+    }
+    .button-icon {
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 900;
     }
     .install-link.iphone {
       background: #111827;
@@ -453,16 +445,20 @@ WEBSITE_PAGE_TEMPLATE = """
     </section>
     <section class="cards">
       <article class="install-card">
-        <div class="install-icon">▶</div>
         <h3>أندرويد</h3>
         <p>رابط تثبيت التطبيق لهواتف Android.</p>
-        <a class="install-link" href="#">تثبيت أندرويد</a>
+        <a class="install-link" href="#">
+          <span class="button-icon">▶</span>
+          <span>تثبيت أندرويد</span>
+        </a>
       </article>
       <article class="install-card">
-        <div class="install-icon iphone"></div>
         <h3>آيفون</h3>
         <p>رابط تثبيت التطبيق لهواتف iPhone.</p>
-        <a class="install-link iphone" href="#">تثبيت آيفون</a>
+        <a class="install-link iphone" href="#">
+          <span class="button-icon"></span>
+          <span>تثبيت آيفون</span>
+        </a>
       </article>
     </section>
   </main>
