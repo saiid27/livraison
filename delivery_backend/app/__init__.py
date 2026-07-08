@@ -358,7 +358,25 @@ WEBSITE_PAGE_TEMPLATE = """
       align-content: center;
       gap: 18px;
     }
-    .panel {
+    .intro {
+      text-align: center;
+    }
+    .intro h2 {
+      margin: 0 0 10px;
+      color: #1e293b;
+      font-size: clamp(22px, 5vw, 32px);
+    }
+    .intro p {
+      margin: 0;
+      color: #64748b;
+      font-size: 17px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .install-card {
       background: white;
       border: 1px solid #e5eaf3;
       border-radius: 18px;
@@ -366,15 +384,15 @@ WEBSITE_PAGE_TEMPLATE = """
       box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
       text-align: center;
     }
-    h2 {
-      margin: 0 0 10px;
+    .install-card h3 {
+      margin: 0 0 8px;
       color: #1e293b;
-      font-size: clamp(22px, 5vw, 34px);
+      font-size: 22px;
     }
-    p {
+    .install-card p {
       margin: 0;
       color: #64748b;
-      font-size: 17px;
+      font-size: 15px;
     }
     .install-icon {
       width: 74px;
@@ -388,6 +406,10 @@ WEBSITE_PAGE_TEMPLATE = """
       font-size: 38px;
       font-weight: 900;
     }
+    .install-icon.iphone {
+      background: #f1f5f9;
+      color: #111827;
+    }
     .install-link {
       display: inline-block;
       margin-top: 20px;
@@ -400,6 +422,13 @@ WEBSITE_PAGE_TEMPLATE = """
       font-size: 18px;
       font-weight: 900;
       box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+    }
+    .install-link.iphone {
+      background: #111827;
+      box-shadow: 0 12px 26px rgba(17, 24, 39, 0.2);
+    }
+    @media (max-width: 680px) {
+      .cards { grid-template-columns: 1fr; }
     }
     footer {
       border-top: 1px solid #e2e8f0;
@@ -418,11 +447,23 @@ WEBSITE_PAGE_TEMPLATE = """
     </div>
   </header>
   <main>
-    <section class="panel">
-      <div class="install-icon">↓</div>
+    <section class="intro">
       <h2>تثبيت تطبيق مايحصر</h2>
-      <p>اضغط على رابط التثبيت لتحميل التطبيق على هاتفك.</p>
-      <a class="install-link" href="#">تثبيت التطبيق</a>
+      <p>اختر نوع هاتفك ثم اضغط على رابط التثبيت.</p>
+    </section>
+    <section class="cards">
+      <article class="install-card">
+        <div class="install-icon">▶</div>
+        <h3>أندرويد</h3>
+        <p>رابط تثبيت التطبيق لهواتف Android.</p>
+        <a class="install-link" href="#">تثبيت أندرويد</a>
+      </article>
+      <article class="install-card">
+        <div class="install-icon iphone"></div>
+        <h3>آيفون</h3>
+        <p>رابط تثبيت التطبيق لهواتف iPhone.</p>
+        <a class="install-link iphone" href="#">تثبيت آيفون</a>
+      </article>
     </section>
   </main>
   <footer>
