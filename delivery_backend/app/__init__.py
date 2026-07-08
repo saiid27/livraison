@@ -446,7 +446,7 @@ WEBSITE_PAGE_TEMPLATE = """
 <body>
   <header>
     <div class="header-inner">
-      <h1 class="brand">mayahsar|مايحصر</h1>
+      <h1 class="brand">مايحصر | mayahsar</h1>
     </div>
   </header>
   <main>
