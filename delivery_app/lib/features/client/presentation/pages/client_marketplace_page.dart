@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -52,7 +53,8 @@ class _ClientMarketplacePageState extends ConsumerState<ClientMarketplacePage> {
       setState(() => _selectedMerchant = null);
       return;
     }
-    context.go('/client');
+    final isAuthenticated = ref.read(authProvider).isAuthenticated;
+    context.go(isAuthenticated ? '/client' : '/login');
   }
 
   @override
@@ -214,6 +216,9 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final submitting = ref.watch(marketplaceProvider).isSubmitting;
+    final authState = ref.watch(authProvider);
+    final canOrder =
+        authState.isAuthenticated && authState.role == AppConstants.roleClient;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -286,9 +291,19 @@ class _ProductCard extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: submitting ? null : () => _buy(context, ref),
-                icon: const Icon(Icons.shopping_bag_outlined),
-                label: Text(isAr ? 'شراء' : 'Acheter'),
+                onPressed: submitting
+                    ? null
+                    : () => canOrder
+                          ? _buy(context, ref)
+                          : _requireClientLogin(context, authState.role),
+                icon: Icon(
+                  canOrder ? Icons.shopping_bag_outlined : Icons.login_outlined,
+                ),
+                label: Text(
+                  canOrder
+                      ? (isAr ? 'شراء' : 'Acheter')
+                      : (isAr ? 'سجل الدخول للطلب' : 'Connexion requise'),
+                ),
               ),
             ),
           ],
@@ -305,6 +320,46 @@ class _ProductCard extends ConsumerWidget {
     );
     if (!context.mounted || order == null) return;
     await _showConfirmation(context, order);
+  }
+
+  Future<void> _requireClientLogin(BuildContext context, String? role) async {
+    final isLoggedInAsOtherRole =
+        role != null && role != AppConstants.roleClient;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.lock_outline, color: AppColors.primary),
+        title: Text(isAr ? 'تسجيل الدخول مطلوب' : 'Connexion requise'),
+        content: Text(
+          isLoggedInAsOtherRole
+              ? (isAr
+                    ? 'الطلب متاح لحسابات الزبائن فقط.'
+                    : 'La commande est réservée aux comptes client.')
+              : (isAr
+                    ? 'يمكنك تصفح المنتجات الآن، لكن يجب تسجيل الدخول قبل إرسال طلب.'
+                    : 'Vous pouvez parcourir les produits, mais vous devez vous connecter avant de commander.'),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              isLoggedInAsOtherRole
+                  ? (isAr ? 'إغلاق' : 'Fermer')
+                  : (isAr ? 'لاحقًا' : 'Plus tard'),
+            ),
+          ),
+          if (!isLoggedInAsOtherRole)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                context.go('/login');
+              },
+              child: Text(isAr ? 'تسجيل الدخول' : 'Se connecter'),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showConfirmation(

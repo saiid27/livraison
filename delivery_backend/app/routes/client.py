@@ -126,8 +126,6 @@ def cancel_order(order_id):
 
 
 @client_bp.route('/products', methods=['GET'])
-@jwt_required()
-@role_required('client')
 def list_products():
     merchant_id = request.args.get('merchant_id')
     products = MerchantProduct.query.filter(
@@ -141,8 +139,6 @@ def list_products():
 
 
 @client_bp.route('/merchants', methods=['GET'])
-@jwt_required()
-@role_required('client')
 def list_merchants():
     merchants = (
         User.query.join(MerchantProduct, User.id == MerchantProduct.merchant_id)

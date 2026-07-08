@@ -55,7 +55,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ? _getHomeRoute(role, approvalStatus)
         : '/login',
     redirect: (context, state) {
-      final isAuthRoute =
+      final isPublicRoute =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register' ||
+          state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/about' ||
+          state.matchedLocation == '/privacy' ||
+          state.matchedLocation == '/contact' ||
+          state.matchedLocation == '/delete-account' ||
+          state.matchedLocation == '/client/marketplace' ||
+          state.matchedLocation == '/splash';
+      final isGuestOnlyRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/forgot-password' ||
@@ -65,8 +75,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/delete-account' ||
           state.matchedLocation == '/splash';
 
-      if (!isAuthenticated && !isAuthRoute) return '/login';
-      if (isAuthenticated && isAuthRoute) {
+      if (!isAuthenticated && !isPublicRoute) return '/login';
+      if (isAuthenticated && isGuestOnlyRoute) {
         return _getHomeRoute(role, approvalStatus);
       }
       if (isAuthenticated &&
@@ -112,6 +122,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/captain-pending',
         builder: (_, __) => const CaptainPendingPage(),
+      ),
+      GoRoute(
+        path: '/client/marketplace',
+        builder: (_, __) => const ClientMarketplacePage(),
       ),
       GoRoute(path: '/merchant', builder: (_, __) => const MerchantHomePage()),
       GoRoute(
@@ -168,10 +182,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/client/profile',
             builder: (_, __) => const ClientProfilePage(),
-          ),
-          GoRoute(
-            path: '/client/marketplace',
-            builder: (_, __) => const ClientMarketplacePage(),
           ),
         ],
       ),

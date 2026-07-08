@@ -315,6 +315,99 @@ ACCOUNT_DELETION_PAGE_TEMPLATE = """
 """
 
 
+WEBSITE_PAGE_TEMPLATE = """
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mayahsar | مايحصر</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background: #f8fafc;
+      color: #172033;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.7;
+    }
+    header {
+      background: #2563eb;
+      color: white;
+      padding: 18px 22px;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.18);
+    }
+    .header-inner,
+    main,
+    .footer-inner {
+      width: min(980px, 100%);
+      margin: 0 auto;
+    }
+    .brand {
+      margin: 0;
+      font-size: clamp(24px, 6vw, 42px);
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+    main {
+      padding: 34px 22px;
+      display: grid;
+      align-content: center;
+      gap: 18px;
+    }
+    .panel {
+      background: white;
+      border: 1px solid #e5eaf3;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 18px 45px rgba(23, 32, 51, 0.08);
+    }
+    h2 {
+      margin: 0 0 10px;
+      color: #1e293b;
+      font-size: clamp(22px, 5vw, 34px);
+    }
+    p {
+      margin: 0;
+      color: #64748b;
+      font-size: 17px;
+    }
+    footer {
+      border-top: 1px solid #e2e8f0;
+      background: white;
+      color: #64748b;
+      padding: 16px 22px;
+      text-align: center;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1 class="brand">mayahsar|مايحصر</h1>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>خدمات التوصيل والطلبات</h2>
+      <p>
+        منصة مايحصر تساعد الزبائن والتجار والكباتن على إدارة الطلبات والتوصيل
+        بطريقة سهلة وواضحة.
+      </p>
+    </section>
+  </main>
+  <footer>
+    <div class="footer-inner">mayahsar © 2026</div>
+  </footer>
+</body>
+</html>
+"""
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -355,6 +448,12 @@ def create_app():
     def health():
         db.session.execute(text('SELECT 1'))
         return jsonify({'status': 'ok'}), 200
+
+    @app.route('/')
+    @app.route('/site')
+    @app.route('/api/site')
+    def website_page():
+        return render_template_string(WEBSITE_PAGE_TEMPLATE)
 
     @app.route('/support')
     @app.route('/api/support')
