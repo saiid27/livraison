@@ -237,6 +237,10 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
           Navigator.of(context).pop();
           context.go('${widget.baseRoute}/history');
         },
+        onDeleteAccount: () {
+          Navigator.of(context).pop();
+          context.go('/delete-account');
+        },
       ),
       appBar: AppBar(
         leading: IconButton(
@@ -600,6 +604,7 @@ class _CaptainDrawer extends StatelessWidget {
   final VoidCallback onProfile;
   final VoidCallback onWallet;
   final VoidCallback onHistory;
+  final VoidCallback onDeleteAccount;
 
   const _CaptainDrawer({
     required this.isArabic,
@@ -609,6 +614,7 @@ class _CaptainDrawer extends StatelessWidget {
     required this.onProfile,
     required this.onWallet,
     required this.onHistory,
+    required this.onDeleteAccount,
   });
 
   @override
@@ -628,6 +634,12 @@ class _CaptainDrawer extends StatelessWidget {
         isArabic ? 'سجل الطلبات' : 'Historique des demandes',
         Icons.history_rounded,
         onHistory,
+      ),
+      _CaptainMenuItem(
+        isArabic ? 'طلب حذف حسابي' : 'Supprimer mon compte',
+        Icons.person_remove_outlined,
+        onDeleteAccount,
+        color: AppColors.error,
       ),
     ];
 
@@ -669,10 +681,10 @@ class _CaptainDrawer extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: item.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(item.icon, color: AppColors.primary),
+                  child: Icon(item.icon, color: item.color),
                 ),
                 title: Text(
                   item.label,
@@ -728,6 +740,12 @@ class _CaptainMenuItem {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final Color color;
 
-  const _CaptainMenuItem(this.label, this.icon, this.onTap);
+  const _CaptainMenuItem(
+    this.label,
+    this.icon,
+    this.onTap, {
+    this.color = AppColors.primary,
+  });
 }
