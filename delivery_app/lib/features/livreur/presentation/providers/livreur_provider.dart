@@ -14,7 +14,7 @@ class LivreurState {
   const LivreurState({
     this.availableOrders = const [],
     this.myOrders = const [],
-    this.isOnline = false,
+    this.isOnline = true,
     this.isLoading = false,
     this.balance = 0.0,
     this.error,
@@ -137,7 +137,11 @@ class LivreurNotifier extends StateNotifier<LivreurState> {
     }
   }
 
-  void toggleOnline() => state = state.copyWith(isOnline: !state.isOnline);
+  void ensureOnline() {
+    if (!state.isOnline) {
+      state = state.copyWith(isOnline: true);
+    }
+  }
 }
 
 final livreurProvider = StateNotifierProvider<LivreurNotifier, LivreurState>(

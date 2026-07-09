@@ -47,7 +47,8 @@ class _LivreurWalletPageState extends ConsumerState<LivreurWalletPage> {
         title: Text(isAr ? 'المحفظة' : 'Portefeuille'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(widget.baseRoute),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(widget.baseRoute),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),

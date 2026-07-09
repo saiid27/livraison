@@ -52,7 +52,8 @@ class _AdminAccountDeletionRequestsPageState
         title: Text(isAr ? 'طلبات حذف الحسابات' : 'Suppressions de comptes'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
         bottom: TabBar(
@@ -220,6 +221,7 @@ class _DeletionRequestCard extends ConsumerWidget {
   }
 
   Future<void> _approve(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -248,7 +250,7 @@ class _DeletionRequestCard extends ConsumerWidget {
         .read(adminAccountDeletionProvider.notifier)
         .approve(request.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         backgroundColor: error == null ? null : AppColors.error,
         content: Text(error ?? (isAr ? 'تم حذف الحساب' : 'Compte supprimé')),
@@ -257,39 +259,24 @@ class _DeletionRequestCard extends ConsumerWidget {
   }
 
   Future<void> _showRejectDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
+    final messenger = ScaffoldMessenger.of(context);
     final reason = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isAr ? 'رفض الطلب' : 'Refuser la demande'),
-        content: TextField(
-          controller: controller,
-          minLines: 2,
-          maxLines: 4,
-          decoration: InputDecoration(
-            labelText: isAr ? 'سبب الرفض' : 'Motif du refus',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(isAr ? 'إلغاء' : 'Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: Text(isAr ? 'رفض' : 'Refuser'),
-          ),
-        ],
-      ),
+      builder: (ctx) => _RejectReasonDialog(isAr: isAr),
     );
-    controller.dispose();
     if (reason == null) return;
+    if (reason.isEmpty) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(isAr ? 'سبب الرفض مطلوب' : 'Motif requis')),
+      );
+      return;
+    }
 
     final error = await ref
         .read(adminAccountDeletionProvider.notifier)
         .reject(request.id, reason);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         backgroundColor: error == null ? null : AppColors.error,
         content: Text(error ?? (isAr ? 'تم رفض الطلب' : 'Demande refusée')),
@@ -306,6 +293,52 @@ class _DeletionRequestCard extends ConsumerWidget {
       'admin' => isAr ? 'أدمن' : 'Admin',
       _ => role,
     };
+  }
+}
+
+class _RejectReasonDialog extends StatefulWidget {
+  const _RejectReasonDialog({required this.isAr});
+
+  final bool isAr;
+
+  @override
+  State<_RejectReasonDialog> createState() => _RejectReasonDialogState();
+}
+
+class _RejectReasonDialogState extends State<_RejectReasonDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isAr = widget.isAr;
+
+    return AlertDialog(
+      title: Text(isAr ? 'رفض الطلب' : 'Refuser la demande'),
+      content: TextField(
+        controller: _controller,
+        minLines: 2,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: isAr ? 'سبب الرفض' : 'Motif du refus',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(isAr ? 'إلغاء' : 'Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: Text(isAr ? 'رفض' : 'Refuser'),
+        ),
+      ],
+    );
   }
 }
 

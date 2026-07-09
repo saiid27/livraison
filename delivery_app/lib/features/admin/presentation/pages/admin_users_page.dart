@@ -47,7 +47,8 @@ class _AdminUsersPageState extends ConsumerState<AdminUsersPage>
         title: Text(s.usersLabel),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
         actions: [const LanguageButton(), const LogoutButton()],
         bottom: TabBar(

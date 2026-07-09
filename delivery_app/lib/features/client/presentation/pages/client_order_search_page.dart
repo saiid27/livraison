@@ -107,7 +107,8 @@ class _ClientOrderSearchPageState extends ConsumerState<ClientOrderSearchPage>
         title: Text(isAr ? 'البحث عن كابتن' : 'Recherche d\'un capitaine'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/client/orders'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/client/orders'),
         ),
       ),
       body: SafeArea(

@@ -55,7 +55,8 @@ class _AdminRechargeRequestsPageState
         title: Text(isAr ? 'طلبات الشحن' : 'Demandes de recharge'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
         bottom: TabBar(

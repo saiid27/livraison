@@ -59,7 +59,8 @@ class _LivreurProfilePageState extends ConsumerState<LivreurProfilePage> {
         title: Text(s.myProfile),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(widget.baseRoute),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(widget.baseRoute),
         ),
         actions: [const LanguageButton(), const LogoutButton()],
       ),

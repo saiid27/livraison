@@ -367,6 +367,9 @@ class ClientShell extends ConsumerWidget {
             case 3:
               context.go('/client/profile');
               break;
+            case 4:
+              context.go('/delete-account');
+              break;
           }
         },
         destinations: [
@@ -389,6 +392,13 @@ class ClientShell extends ConsumerWidget {
             icon: const Icon(Icons.person_outline),
             selectedIcon: const Icon(Icons.person),
             label: s.navProfile,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_remove_outlined),
+            selectedIcon: const Icon(Icons.person_remove),
+            label: ref.watch(localeProvider).languageCode == 'ar'
+                ? 'حذف حسابي'
+                : 'Supprimer',
           ),
         ],
       ),

@@ -49,7 +49,8 @@ class _AdminPaymentMethodsPageState
         title: Text(isAr ? 'طرق الدفع' : 'Moyens de paiement'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),

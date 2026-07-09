@@ -21,7 +21,8 @@ class PublicInfoPage extends ConsumerWidget {
         title: Text(content.title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/login'),
         ),
       ),
       body: SafeArea(

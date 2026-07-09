@@ -124,7 +124,9 @@ class _LivreurRechargePageState extends ConsumerState<LivreurRechargePage> {
         title: Text(isAr ? 'شحن الرصيد' : 'Recharger le solde'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('${widget.baseRoute}/wallet'),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go('${widget.baseRoute}/wallet'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),

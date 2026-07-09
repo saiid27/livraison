@@ -33,7 +33,8 @@ class _MerchantProductsPageState extends ConsumerState<MerchantProductsPage> {
         title: Text(isAr ? 'المنتجات المتوفرة' : 'Produits disponibles'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/merchant'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/merchant'),
         ),
       ),
       floatingActionButton: FloatingActionButton(

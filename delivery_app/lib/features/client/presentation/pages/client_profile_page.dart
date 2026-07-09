@@ -81,7 +81,8 @@ class ClientProfilePage extends ConsumerWidget {
         title: Text(s.myProfile),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/client'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/client'),
         ),
         actions: [const LanguageButton(), const LogoutButton()],
       ),

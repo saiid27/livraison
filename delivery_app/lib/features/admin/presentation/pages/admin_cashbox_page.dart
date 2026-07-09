@@ -79,7 +79,8 @@ class _AdminCashboxPageState extends ConsumerState<AdminCashboxPage> {
         title: Text(isAr ? 'الصندوق' : 'Caisse'),
         leading: IconButton(
           icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
       ),
       body: state.isLoading

@@ -55,7 +55,8 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(livreurProvider).isOnline) _startPolling();
+      ref.read(livreurProvider.notifier).ensureOnline();
+      _startPolling();
     });
   }
 
@@ -64,16 +65,6 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
     _ordersTimer?.cancel();
     _player.dispose();
     super.dispose();
-  }
-
-  void _toggleOnline() {
-    final willBeOnline = !ref.read(livreurProvider).isOnline;
-    ref.read(livreurProvider.notifier).toggleOnline();
-    if (willBeOnline) {
-      _startPolling();
-    } else {
-      _ordersTimer?.cancel();
-    }
   }
 
   void _startPolling() {
@@ -214,7 +205,6 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
     final user = ref.watch(authProvider).user;
-    final state = ref.watch(livreurProvider);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -294,40 +284,32 @@ class _LivreurHomePageState extends ConsumerState<LivreurHomePage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               elevation: 3,
-              child: InkWell(
-                onTap: _toggleOnline,
-                borderRadius: BorderRadius.circular(14),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                          color: state.isOnline
-                              ? AppColors.success
-                              : AppColors.textSecondary,
-                          shape: BoxShape.circle,
-                        ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 7),
-                      Text(
-                        state.isOnline
-                            ? (isAr ? 'متصل' : 'En ligne')
-                            : (isAr ? 'غير متصل' : 'Hors ligne'),
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      isAr ? 'متصل' : 'En ligne',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

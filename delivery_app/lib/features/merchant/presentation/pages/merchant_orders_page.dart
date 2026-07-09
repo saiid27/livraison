@@ -51,7 +51,8 @@ class _MerchantOrdersPageState extends ConsumerState<MerchantOrdersPage> {
         title: Text(title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/merchant'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/merchant'),
         ),
       ),
       body: state.isLoading

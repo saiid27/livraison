@@ -79,7 +79,8 @@ class _MerchantAddProductPageState
         title: Text(isAr ? 'إضافة منتج' : 'Ajouter un produit'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/merchant'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/merchant'),
         ),
       ),
       body: SingleChildScrollView(

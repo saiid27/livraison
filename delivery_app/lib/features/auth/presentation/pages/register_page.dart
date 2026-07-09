@@ -112,7 +112,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             isAr ? Icons.arrow_forward : Icons.arrow_back,
             color: AppColors.textPrimary,
           ),
-          onPressed: () => context.go('/login'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/login'),
         ),
         actions: const [LanguageButton(color: AppColors.primary)],
       ),

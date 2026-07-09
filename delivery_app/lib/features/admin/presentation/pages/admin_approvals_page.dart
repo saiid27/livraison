@@ -33,7 +33,8 @@ class _AdminApprovalsPageState extends ConsumerState<AdminApprovalsPage> {
       appBar: AppBar(
         title: Text(isAr ? 'طلبات إنشاء الحساب' : 'Demandes de comptes'),
         leading: IconButton(
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
           icon: Icon(isAr ? Icons.arrow_forward : Icons.arrow_back),
         ),
       ),

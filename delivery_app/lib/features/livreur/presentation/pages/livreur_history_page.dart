@@ -51,7 +51,8 @@ class _LivreurHistoryPageState extends ConsumerState<LivreurHistoryPage>
         title: Text(isAr ? 'سجل الطلبات' : 'Historique des demandes'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(widget.baseRoute),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(widget.baseRoute),
         ),
         actions: const [LanguageButton(), LogoutButton()],
         bottom: TabBar(

@@ -50,7 +50,8 @@ class _ClientOrdersPageState extends ConsumerState<ClientOrdersPage> {
         title: Text(s.myOrders),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/client'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/client'),
         ),
         actions: [const LanguageButton(), const LogoutButton()],
       ),

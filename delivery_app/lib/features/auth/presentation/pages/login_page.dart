@@ -84,7 +84,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               padding: EdgeInsets.all(pagePadding),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - (pagePadding * 2),
+                  minHeight: constraints.maxHeight > pagePadding * 2
+                      ? constraints.maxHeight - (pagePadding * 2)
+                      : 0,
                 ),
                 child: IntrinsicHeight(
                   child: Column(

@@ -40,8 +40,9 @@ class _ClientTrackPageState extends ConsumerState<ClientTrackPage> {
 
   Future<void> _loadOrder() async {
     try {
-      final response =
-          await ApiClient.instance.get('/client/orders/${widget.orderId}');
+      final response = await ApiClient.instance.get(
+        '/client/orders/${widget.orderId}',
+      );
       final order = OrderModel.fromJson(
         response.data['order'] as Map<String, dynamic>,
       );
@@ -65,21 +66,25 @@ class _ClientTrackPageState extends ConsumerState<ClientTrackPage> {
 
     final steps = [
       _TrackStep(
-          icon: Icons.receipt_long,
-          title: s.orderReceived,
-          subtitle: s.orderReceivedSub),
+        icon: Icons.receipt_long,
+        title: s.orderReceived,
+        subtitle: s.orderReceivedSub,
+      ),
       _TrackStep(
-          icon: Icons.person_search,
-          title: s.driverAssigned,
-          subtitle: s.driverAssignedSub),
+        icon: Icons.person_search,
+        title: s.driverAssigned,
+        subtitle: s.driverAssignedSub,
+      ),
       _TrackStep(
-          icon: Icons.local_shipping,
-          title: s.onTheWay,
-          subtitle: s.onTheWaySub),
+        icon: Icons.local_shipping,
+        title: s.onTheWay,
+        subtitle: s.onTheWaySub,
+      ),
       _TrackStep(
-          icon: Icons.check_circle,
-          title: s.deliveredTitle,
-          subtitle: s.deliveredSub),
+        icon: Icons.check_circle,
+        title: s.deliveredTitle,
+        subtitle: s.deliveredSub,
+      ),
     ];
 
     return Scaffold(
@@ -87,7 +92,8 @@ class _ClientTrackPageState extends ConsumerState<ClientTrackPage> {
         title: Text('${s.trackOrderPrefix}${widget.orderId}'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/client/orders'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/client/orders'),
         ),
         actions: [const LanguageButton(), const LogoutButton()],
       ),
@@ -110,7 +116,9 @@ class _ClientTrackPageState extends ConsumerState<ClientTrackPage> {
                   right: 16,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(20),
@@ -137,7 +145,9 @@ class _ClientTrackPageState extends ConsumerState<ClientTrackPage> {
                   Text(
                     s.deliveryStatus,
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ...List.generate(steps.length, (i) {
@@ -152,7 +162,8 @@ class _ClientTrackPageState extends ConsumerState<ClientTrackPage> {
                   const SizedBox(height: 24),
 
                   // Captain info card (real data)
-                  if (_order?.livreurName != null || _order?.livreurPhone != null)
+                  if (_order?.livreurName != null ||
+                      _order?.livreurPhone != null)
                     _CaptainCard(
                       isAr: isAr,
                       name: _order?.livreurName,
@@ -183,10 +194,7 @@ class _CaptainCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -208,7 +216,9 @@ class _CaptainCard extends StatelessWidget {
                 Text(
                   name ?? (isAr ? 'الكابتن' : 'Capitaine'),
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 Text(
                   isAr ? 'كابتن توصيل' : 'Capitaine de livraison',
@@ -218,8 +228,11 @@ class _CaptainCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      const Icon(Icons.phone,
-                          size: 14, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.phone,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         phone!,
@@ -245,8 +258,11 @@ class _TrackStep {
   final String title;
   final String subtitle;
 
-  const _TrackStep(
-      {required this.icon, required this.title, required this.subtitle});
+  const _TrackStep({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 }
 
 class _TrackStepWidget extends StatelessWidget {
@@ -255,16 +271,20 @@ class _TrackStepWidget extends StatelessWidget {
   final bool isActive;
   final bool isLast;
 
-  const _TrackStepWidget(
-      {required this.step,
-      required this.isDone,
-      required this.isActive,
-      required this.isLast});
+  const _TrackStepWidget({
+    required this.step,
+    required this.isDone,
+    required this.isActive,
+    required this.isLast,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        isDone ? AppColors.success : isActive ? AppColors.primary : AppColors.border;
+    final color = isDone
+        ? AppColors.success
+        : isActive
+        ? AppColors.primary
+        : AppColors.border;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,7 +307,11 @@ class _TrackStepWidget extends StatelessWidget {
               ),
             ),
             if (!isLast)
-              Container(width: 2, height: 40, color: isDone ? AppColors.success : AppColors.border),
+              Container(
+                width: 2,
+                height: 40,
+                color: isDone ? AppColors.success : AppColors.border,
+              ),
           ],
         ),
         const SizedBox(width: 16),
@@ -308,7 +332,9 @@ class _TrackStepWidget extends StatelessWidget {
                 Text(
                   step.subtitle,
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13),
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),

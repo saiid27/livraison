@@ -304,7 +304,8 @@ class _AdminAccountsPageState extends ConsumerState<AdminAccountsPage> {
         title: Text(isAr ? 'حسابات الأدمن' : 'Comptes admin'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),

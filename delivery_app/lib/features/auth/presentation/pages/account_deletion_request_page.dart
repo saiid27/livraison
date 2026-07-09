@@ -142,6 +142,15 @@ class _AccountDeletionRequestPageState
   @override
   Widget build(BuildContext context) {
     final isAr = ref.watch(localeProvider).languageCode == 'ar';
+    final authState = ref.watch(authProvider);
+    final fallbackRoute = switch (authState.role) {
+      'client' => '/client',
+      'livreur' => '/livreur',
+      'car_captain' => '/car-captain',
+      'merchant' => '/merchant',
+      'admin' => '/admin',
+      _ => '/login',
+    };
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -149,7 +158,8 @@ class _AccountDeletionRequestPageState
         title: Text(isAr ? 'طلب حذف حسابي' : 'Supprimer mon compte'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(fallbackRoute),
         ),
       ),
       body: SafeArea(

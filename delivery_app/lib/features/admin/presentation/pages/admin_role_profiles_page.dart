@@ -63,7 +63,8 @@ class _AdminRoleProfilesPageState extends ConsumerState<AdminRoleProfilesPage> {
         title: Text(title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/admin'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),
@@ -177,8 +178,9 @@ class _AdminProfileDetailPageState
         title: Text(isAr ? 'البروفايل' : 'Profil'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.go(_isCaptain ? '/admin/captains' : '/admin/merchants'),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go(_isCaptain ? '/admin/captains' : '/admin/merchants'),
         ),
         actions: const [LanguageButton(), LogoutButton()],
       ),

@@ -175,7 +175,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          onPressed: () => context.go('/login'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/login'),
           icon: Icon(
             isAr ? Icons.arrow_forward : Icons.arrow_back,
             color: AppColors.textPrimary,

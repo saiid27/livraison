@@ -133,7 +133,8 @@ class _MerchantProfilePageState extends ConsumerState<MerchantProfilePage> {
         title: Text(isAr ? 'ملف التاجر' : 'Profil commerçant'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/merchant'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/merchant'),
         ),
       ),
       body: ListView(
