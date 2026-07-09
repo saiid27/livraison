@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 
 class AccountDeletionRequestPage extends ConsumerStatefulWidget {
   const AccountDeletionRequestPage({super.key});
@@ -22,6 +23,16 @@ class _AccountDeletionRequestPageState
   bool _isSubmitting = false;
   bool _isChecking = false;
   String? _verifiedUserName;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      _phoneCtrl.text = user.phone;
+      _verifiedUserName = user.name;
+    }
+  }
 
   @override
   void dispose() {
@@ -109,7 +120,9 @@ class _AccountDeletionRequestPageState
           ),
         ),
       );
-      context.pop();
+      await ref.read(authProvider.notifier).logout();
+      if (!mounted) return;
+      context.go('/login');
     } on DioException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

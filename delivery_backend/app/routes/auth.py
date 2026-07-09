@@ -393,7 +393,7 @@ def login():
         return jsonify({'message': 'رقم الهاتف أو كلمة المرور غير صحيحة'}), 401
 
     if not user.is_active:
-        return jsonify({'message': 'Compte désactivé'}), 403
+        return jsonify({'message': 'تم تعطيل هذا الحساب'}), 403
 
     token = create_access_token(identity=str(user.id))
     return jsonify({'token': token, 'user': user.to_dict()}), 200
@@ -534,6 +534,7 @@ def request_account_deletion():
         role=user.role,
         reason=reason,
     )
+    user.is_active = False
     db.session.add(deletion_request)
     db.session.commit()
 

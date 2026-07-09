@@ -956,6 +956,11 @@ def reject_account_deletion(req_id):
     deletion_request.status = 'rejected'
     deletion_request.rejection_reason = str(data.get('reason', '')).strip() or None
     deletion_request.processed_at = datetime.utcnow()
+    user = User.query.get(deletion_request.user_id)
+    if not user:
+        user = User.query.filter_by(phone=deletion_request.phone).first()
+    if user:
+        user.is_active = True
     db.session.commit()
     return jsonify({
         'request': deletion_request.to_dict(),

@@ -72,7 +72,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/about' ||
           state.matchedLocation == '/privacy' ||
           state.matchedLocation == '/contact' ||
-          state.matchedLocation == '/delete-account' ||
           state.matchedLocation == '/splash';
 
       if (!isAuthenticated && !isPublicRoute) return '/login';
