@@ -2,7 +2,7 @@ name: delivery_app
 description: "Application de livraison générale"
 publish_to: 'none'
 
-version: 1.0.0+5
+version: 1.0.0+6
 
 environment:
   sdk: ^3.11.5
