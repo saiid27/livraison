@@ -155,6 +155,7 @@ def list_merchants():
 
     payload = []
     for merchant in merchants:
+        merchant_data = merchant.to_dict()
         available_products = [
             product
             for product in merchant.products
@@ -163,7 +164,7 @@ def list_merchants():
         payload.append({
             'id': merchant.id,
             'name': merchant.name,
-            'avatar': merchant.avatar,
+            'avatar': merchant_data['avatar'],
             'merchant_contact_phone': merchant.merchant_contact_phone,
             'merchant_payment_phone': merchant.merchant_payment_phone,
             'merchant_payment_methods': [

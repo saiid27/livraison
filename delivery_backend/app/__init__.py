@@ -696,33 +696,42 @@ def create_app():
             '.png': 'image/png',
             '.webp': 'image/webp',
         }
+        def migrate_upload_image(user, path_attr, data_attr, mime_attr):
+            if getattr(user, data_attr):
+                return
+            image_path = getattr(user, path_attr)
+            if not image_path or image_path.startswith('/api/auth/images/'):
+                return
+            if not image_path.startswith('/uploads/'):
+                return
+            local_path = os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                image_path.removeprefix('/uploads/'),
+            )
+            if not os.path.exists(local_path):
+                return
+            with open(local_path, 'rb') as image_file:
+                setattr(user, data_attr, image_file.read())
+            ext = os.path.splitext(local_path)[1].lower()
+            setattr(user, mime_attr, image_mimes.get(ext, 'image/jpeg'))
+            setattr(
+                user,
+                path_attr,
+                f'/api/auth/images/{user.id}/{path_attr}',
+            )
+
+        users_with_avatars = User.query.filter(User.avatar.isnot(None)).all()
+        for user in users_with_avatars:
+            migrate_upload_image(user, 'avatar', 'avatar_data', 'avatar_mime')
+
         captains = User.query.filter(
             User.role.in_(('livreur', 'car_captain'))
         ).all()
         for captain in captains:
             for path_attr, (data_attr, mime_attr) in image_fields.items():
-                if getattr(captain, data_attr):
+                if path_attr == 'avatar':
                     continue
-                image_path = getattr(captain, path_attr)
-                if not image_path or image_path.startswith('/api/auth/images/'):
-                    continue
-                if not image_path.startswith('/uploads/'):
-                    continue
-                local_path = os.path.join(
-                    app.config['UPLOAD_FOLDER'],
-                    image_path.removeprefix('/uploads/'),
-                )
-                if not os.path.exists(local_path):
-                    continue
-                with open(local_path, 'rb') as image_file:
-                    setattr(captain, data_attr, image_file.read())
-                ext = os.path.splitext(local_path)[1].lower()
-                setattr(captain, mime_attr, image_mimes.get(ext, 'image/jpeg'))
-                setattr(
-                    captain,
-                    path_attr,
-                    f'/api/auth/images/{captain.id}/{path_attr}',
-                )
+                migrate_upload_image(captain, path_attr, data_attr, mime_attr)
         db.session.commit()
 
     return app

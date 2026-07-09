@@ -61,6 +61,12 @@ class _MerchantHomePageState extends ConsumerState<MerchantHomePage> {
         Colors.teal,
         () => context.go('/merchant/order-history'),
       ),
+      _MerchantItem(
+        isAr ? 'طلب حذف حسابي' : 'Supprimer mon compte',
+        Icons.person_remove_outlined,
+        AppColors.error,
+        () => context.go('/delete-account'),
+      ),
     ];
 
     return Scaffold(

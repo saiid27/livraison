@@ -350,10 +350,10 @@ def register():
         if 'profile_image' not in request.files or not request.files['profile_image'].filename:
             return jsonify({'message': 'صورة المؤسسة إلزامية'}), 400
         try:
-            merchant_images['avatar'] = _save_upload(
-                request.files['profile_image'],
-                'merchant_profiles',
-            )
+            image_data, mime_type = _read_upload_image(request.files['profile_image'])
+            merchant_images['avatar'] = 'stored_in_database'
+            merchant_images['avatar_data'] = image_data
+            merchant_images['avatar_mime'] = mime_type
         except ValueError as error:
             return jsonify({'message': str(error)}), 400
 
@@ -373,6 +373,8 @@ def register():
     if data['role'] in ('livreur', 'car_captain'):
         for _, (path_key, _, _) in CAPTAIN_FILES.items():
             setattr(user, path_key, f'/api/auth/images/{user.id}/{path_key}')
+    if data['role'] == 'merchant':
+        user.avatar = f'/api/auth/images/{user.id}/avatar'
     db.session.commit()
 
     token = create_access_token(identity=str(user.id))

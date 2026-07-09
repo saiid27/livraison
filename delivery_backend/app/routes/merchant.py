@@ -15,6 +15,12 @@ from app.utils.decorators import role_required
 merchant_bp = Blueprint('merchant', __name__)
 
 _ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
+_IMAGE_MIME_BY_EXT = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+}
 
 
 def _save_upload(upload, subfolder):
@@ -31,6 +37,18 @@ def _save_upload(upload, subfolder):
 
 def _save_product_image(upload):
     return _save_upload(upload, 'products')
+
+
+def _read_image_upload(upload):
+    original = secure_filename(upload.filename or '')
+    ext = Path(original).suffix.lower()
+    mime_type = _IMAGE_MIME_BY_EXT.get(ext)
+    if not mime_type:
+        raise ValueError('Format image non pris en charge')
+    image_data = upload.read()
+    if not image_data:
+        raise ValueError('Image vide')
+    return image_data, mime_type
 
 
 def _float_value(value):
@@ -76,7 +94,10 @@ def update_profile():
     merchant.merchant_payment_phone = payment_phone or None
     if has_new_avatar:
         try:
-            merchant.avatar = _save_upload(request.files['profile_image'], 'merchant_profiles')
+            image_data, mime_type = _read_image_upload(request.files['profile_image'])
+            merchant.avatar_data = image_data
+            merchant.avatar_mime = mime_type
+            merchant.avatar = f'/api/auth/images/{merchant.id}/avatar'
         except ValueError as error:
             return jsonify({'message': str(error)}), 400
     db.session.commit()
