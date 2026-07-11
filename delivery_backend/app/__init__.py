@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, send_file, jsonify, render_template_string
+from flask import Flask, send_from_directory, send_file, jsonify, render_template_string, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
@@ -557,10 +557,12 @@ def create_app():
 
     @app.route('/api/media/<collection>/<int:item_id>/<field>')
     def database_media(collection, item_id, field):
+        from app.media_security import is_valid_media_key
         from app.models.merchant_order import MerchantOrder
         from app.models.merchant_product import MerchantProduct
         from app.models.payment_method import PaymentMethod
         from app.models.recharge_request import RechargeRequest
+        from app.models.user import User
 
         media_sources = {
             ('products', 'image'): (
@@ -578,9 +580,37 @@ def create_app():
             ('merchant-orders', 'payment_screenshot'): (
                 MerchantOrder, 'payment_screenshot_data', 'payment_screenshot_mime',
             ),
+            ('users', 'id_card_image'): (
+                User, 'id_card_image_data', 'id_card_image_mime',
+            ),
+            ('users', 'vehicle_image'): (
+                User, 'vehicle_image_data', 'vehicle_image_mime',
+            ),
+            ('users', 'vehicle_registration_image'): (
+                User,
+                'vehicle_registration_image_data',
+                'vehicle_registration_image_mime',
+            ),
+            ('users', 'permit_image'): (
+                User, 'permit_image_data', 'permit_image_mime',
+            ),
+        }
+        protected_sources = {
+            ('recharge-requests', 'screenshot'),
+            ('merchant-orders', 'product_image'),
+            ('merchant-orders', 'payment_screenshot'),
+            ('users', 'id_card_image'),
+            ('users', 'vehicle_image'),
+            ('users', 'vehicle_registration_image'),
+            ('users', 'permit_image'),
         }
         source = media_sources.get((collection, field))
         if not source:
+            return jsonify({'message': 'Image introuvable'}), 404
+        if (
+            (collection, field) in protected_sources and
+            not is_valid_media_key(collection, item_id, field, request.args.get('key'))
+        ):
             return jsonify({'message': 'Image introuvable'}), 404
 
         model, data_attr, mime_attr = source

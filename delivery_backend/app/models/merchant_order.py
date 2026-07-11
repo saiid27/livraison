@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.media_security import media_url
 
 
 class MerchantOrder(db.Model):
@@ -48,7 +49,7 @@ class MerchantOrder(db.Model):
             'product_id': self.product_id,
             'product_name': self.product_name,
             'product_image': (
-                f'/api/media/merchant-orders/{self.id}/product_image'
+                media_url('merchant-orders', self.id, 'product_image')
                 if self.product_image_data else self.product_image
             ),
             'unit_price': self.unit_price,
@@ -56,7 +57,7 @@ class MerchantOrder(db.Model):
             'total_price': self.total_price,
             'payment_phone_from': self.payment_phone_from,
             'payment_screenshot': (
-                f'/api/media/merchant-orders/{self.id}/payment_screenshot'
+                media_url('merchant-orders', self.id, 'payment_screenshot')
                 if self.payment_screenshot_data else self.payment_screenshot
             ),
             'buyer_name': self.buyer_name,

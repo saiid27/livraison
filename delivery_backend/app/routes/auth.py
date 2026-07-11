@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db, bcrypt
+from app.media_security import is_valid_media_key
 from app.models.user import User
 from app.models.account_deletion_request import AccountDeletionRequest
 from sqlalchemy import text
@@ -224,6 +225,13 @@ def _generated_email(phone):
 @auth_bp.route('/images/<int:user_id>/<field>', methods=['GET'])
 def user_image(user_id, field):
     if field not in IMAGE_FIELDS:
+        return jsonify({'message': 'Image introuvable'}), 404
+    if field != 'avatar' and not is_valid_media_key(
+        'users',
+        user_id,
+        field,
+        request.args.get('key'),
+    ):
         return jsonify({'message': 'Image introuvable'}), 404
 
     user = User.query.get(user_id)

@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.media_security import media_url
 
 
 class User(db.Model):
@@ -49,6 +50,8 @@ class User(db.Model):
 
     def _image_value(self, field, fallback, data):
         if data:
+            if field != 'avatar':
+                return media_url('users', self.id, field)
             return f'/api/auth/images/{self.id}/{field}'
         return fallback
 

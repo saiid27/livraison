@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.media_security import media_url
 
 
 class RechargeRequest(db.Model):
@@ -31,7 +32,7 @@ class RechargeRequest(db.Model):
             'amount': self.amount,
             'phone_from': self.phone_from,
             'screenshot': (
-                f'/api/media/recharge-requests/{self.id}/screenshot'
+                media_url('recharge-requests', self.id, 'screenshot')
                 if self.screenshot_data else self.screenshot
             ),
             'status': self.status,
