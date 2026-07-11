@@ -1,11 +1,8 @@
-from flask import Blueprint, request, jsonify, current_app, redirect, render_template_string, url_for
+from flask import Blueprint, request, jsonify, redirect, render_template_string, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from pathlib import Path
-from uuid import uuid4
-from werkzeug.utils import secure_filename
-import os
 
 from app import bcrypt, db
+from app.image_storage import read_image_upload
 from app.models.order import Order
 from app.models.user import User
 from app.models.payment_method import PaymentMethod
@@ -22,13 +19,6 @@ from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
 
-_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
-_IMAGE_MIME_BY_EXT = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.webp': 'image/webp',
-}
 _CAPTAIN_DOCUMENT_FIELDS = {
     'profile_image': ('avatar', 'avatar_data', 'avatar_mime'),
     'id_card_image': ('id_card_image', 'id_card_image_data', 'id_card_image_mime'),
@@ -40,30 +30,6 @@ _CAPTAIN_DOCUMENT_FIELDS = {
     ),
     'permit_image': ('permit_image', 'permit_image_data', 'permit_image_mime'),
 }
-
-
-def _save_upload(upload, subfolder):
-    original = secure_filename(upload.filename or '')
-    ext = Path(original).suffix.lower()
-    if ext not in _ALLOWED_EXTS:
-        raise ValueError('Format image non pris en charge')
-    target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
-    os.makedirs(target_dir, exist_ok=True)
-    filename = f'{uuid4().hex}{ext}'
-    upload.save(os.path.join(target_dir, filename))
-    return f'/uploads/{subfolder}/{filename}'
-
-
-def _read_image_upload(upload):
-    original = secure_filename(upload.filename or '')
-    ext = Path(original).suffix.lower()
-    mime_type = _IMAGE_MIME_BY_EXT.get(ext)
-    if not mime_type:
-        raise ValueError('Format image non pris en charge')
-    image_data = upload.read()
-    if not image_data:
-        raise ValueError('Image vide')
-    return image_data, mime_type
 
 
 def _cashbox_totals():
@@ -600,7 +566,7 @@ def update_captain_documents(user_id):
     try:
         for form_key in uploaded:
             path_attr, data_attr, mime_attr = _CAPTAIN_DOCUMENT_FIELDS[form_key]
-            image_data, mime_type = _read_image_upload(request.files[form_key])
+            image_data, mime_type = read_image_upload(request.files[form_key])
             setattr(captain, data_attr, image_data)
             setattr(captain, mime_attr, mime_type)
             setattr(captain, path_attr, f'/api/auth/images/{captain.id}/{path_attr}')
@@ -719,11 +685,16 @@ def create_payment_method():
         return jsonify({'message': 'صورة طريقة الدفع إلزامية'}), 400
 
     try:
-        logo_url = _save_upload(request.files['logo'], 'payment_methods')
+        logo_data, logo_mime = read_image_upload(request.files['logo'])
     except ValueError as e:
         return jsonify({'message': str(e)}), 400
 
-    method = PaymentMethod(name=name, phone_number=phone_number, logo=logo_url)
+    method = PaymentMethod(
+        name=name,
+        phone_number=phone_number,
+        logo_data=logo_data,
+        logo_mime=logo_mime,
+    )
     db.session.add(method)
     db.session.commit()
     return jsonify({'payment_method': method.to_dict(), 'message': 'Moyen de paiement créé'}), 201
@@ -750,7 +721,10 @@ def update_payment_method(method_id):
 
     if 'logo' in request.files and request.files['logo'].filename:
         try:
-            method.logo = _save_upload(request.files['logo'], 'payment_methods')
+            logo_data, logo_mime = read_image_upload(request.files['logo'])
+            method.logo_data = logo_data
+            method.logo_mime = logo_mime
+            method.logo = f'/api/media/payment-methods/{method.id}/logo'
         except ValueError as e:
             return jsonify({'message': str(e)}), 400
 

@@ -11,6 +11,8 @@ class RechargeRequest(db.Model):
     amount = db.Column(db.Float, nullable=False)
     phone_from = db.Column(db.String(20), nullable=False)
     screenshot = db.Column(db.String(255), nullable=True)
+    screenshot_data = db.Column(db.LargeBinary, nullable=True)
+    screenshot_mime = db.Column(db.String(60), nullable=True)
     status = db.Column(db.String(20), nullable=False, default='en_attente')  # en_attente | verifie | refuse
     rejection_reason = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -28,7 +30,10 @@ class RechargeRequest(db.Model):
             'payment_method_name': self.payment_method.name if self.payment_method else None,
             'amount': self.amount,
             'phone_from': self.phone_from,
-            'screenshot': self.screenshot,
+            'screenshot': (
+                f'/api/media/recharge-requests/{self.id}/screenshot'
+                if self.screenshot_data else self.screenshot
+            ),
             'status': self.status,
             'rejection_reason': self.rejection_reason,
             'created_at': self.created_at.isoformat(),

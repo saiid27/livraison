@@ -555,6 +555,46 @@ def create_app():
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+    @app.route('/api/media/<collection>/<int:item_id>/<field>')
+    def database_media(collection, item_id, field):
+        from app.models.merchant_order import MerchantOrder
+        from app.models.merchant_product import MerchantProduct
+        from app.models.payment_method import PaymentMethod
+        from app.models.recharge_request import RechargeRequest
+
+        media_sources = {
+            ('products', 'image'): (
+                MerchantProduct, 'image_data', 'image_mime',
+            ),
+            ('payment-methods', 'logo'): (
+                PaymentMethod, 'logo_data', 'logo_mime',
+            ),
+            ('recharge-requests', 'screenshot'): (
+                RechargeRequest, 'screenshot_data', 'screenshot_mime',
+            ),
+            ('merchant-orders', 'product_image'): (
+                MerchantOrder, 'product_image_data', 'product_image_mime',
+            ),
+            ('merchant-orders', 'payment_screenshot'): (
+                MerchantOrder, 'payment_screenshot_data', 'payment_screenshot_mime',
+            ),
+        }
+        source = media_sources.get((collection, field))
+        if not source:
+            return jsonify({'message': 'Image introuvable'}), 404
+
+        model, data_attr, mime_attr = source
+        item = model.query.get(item_id)
+        image_data = getattr(item, data_attr, None) if item else None
+        if not image_data:
+            return jsonify({'message': 'Image introuvable'}), 404
+
+        return send_file(
+            BytesIO(image_data),
+            mimetype=getattr(item, mime_attr) or 'image/jpeg',
+            max_age=31536000,
+        )
+
     @app.route('/api/map/tiles/<int:zoom>/<int:x>/<int:y>.png')
     def map_tile(zoom, x, y):
         if not 0 <= zoom <= 19:
@@ -657,10 +697,20 @@ def create_app():
             "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
             "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS payment_phone_from VARCHAR(20)",
             "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS payment_screenshot VARCHAR(255)",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS payment_screenshot_data BYTEA",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS payment_screenshot_mime VARCHAR(60)",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS product_image_data BYTEA",
+            "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS product_image_mime VARCHAR(60)",
             "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS buyer_name VARCHAR(120)",
             "ALTER TABLE merchant_orders ADD COLUMN IF NOT EXISTS notes TEXT",
             "ALTER TABLE merchant_products ADD COLUMN IF NOT EXISTS image VARCHAR(255)",
+            "ALTER TABLE merchant_products ADD COLUMN IF NOT EXISTS image_data BYTEA",
+            "ALTER TABLE merchant_products ADD COLUMN IF NOT EXISTS image_mime VARCHAR(60)",
             "ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS logo VARCHAR(255)",
+            "ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS logo_data BYTEA",
+            "ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS logo_mime VARCHAR(60)",
+            "ALTER TABLE recharge_requests ADD COLUMN IF NOT EXISTS screenshot_data BYTEA",
+            "ALTER TABLE recharge_requests ADD COLUMN IF NOT EXISTS screenshot_mime VARCHAR(60)",
             "ALTER TABLE cash_transactions ADD COLUMN IF NOT EXISTS order_id INTEGER",
         ):
             db.session.execute(text(statement))
@@ -720,6 +770,26 @@ def create_app():
                 f'/api/auth/images/{user.id}/{path_attr}',
             )
 
+        def migrate_model_upload_image(item, path_attr, data_attr, mime_attr, url):
+            if getattr(item, data_attr):
+                return
+            image_path = getattr(item, path_attr)
+            if not image_path or image_path.startswith('/api/media/'):
+                return
+            if not image_path.startswith('/uploads/'):
+                return
+            local_path = os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                image_path.removeprefix('/uploads/'),
+            )
+            if not os.path.exists(local_path):
+                return
+            with open(local_path, 'rb') as image_file:
+                setattr(item, data_attr, image_file.read())
+            ext = os.path.splitext(local_path)[1].lower()
+            setattr(item, mime_attr, image_mimes.get(ext, 'image/jpeg'))
+            setattr(item, path_attr, url(item))
+
         users_with_avatars = User.query.filter(User.avatar.isnot(None)).all()
         for user in users_with_avatars:
             migrate_upload_image(user, 'avatar', 'avatar_data', 'avatar_mime')
@@ -732,6 +802,49 @@ def create_app():
                 if path_attr == 'avatar':
                     continue
                 migrate_upload_image(captain, path_attr, data_attr, mime_attr)
+
+        for product in MerchantProduct.query.filter(MerchantProduct.image.isnot(None)).all():
+            migrate_model_upload_image(
+                product,
+                'image',
+                'image_data',
+                'image_mime',
+                lambda item: f'/api/media/products/{item.id}/image',
+            )
+
+        for method in PaymentMethod.query.filter(PaymentMethod.logo.isnot(None)).all():
+            migrate_model_upload_image(
+                method,
+                'logo',
+                'logo_data',
+                'logo_mime',
+                lambda item: f'/api/media/payment-methods/{item.id}/logo',
+            )
+
+        for req in RechargeRequest.query.filter(RechargeRequest.screenshot.isnot(None)).all():
+            migrate_model_upload_image(
+                req,
+                'screenshot',
+                'screenshot_data',
+                'screenshot_mime',
+                lambda item: f'/api/media/recharge-requests/{item.id}/screenshot',
+            )
+
+        for order in MerchantOrder.query.all():
+            migrate_model_upload_image(
+                order,
+                'product_image',
+                'product_image_data',
+                'product_image_mime',
+                lambda item: f'/api/media/merchant-orders/{item.id}/product_image',
+            )
+            migrate_model_upload_image(
+                order,
+                'payment_screenshot',
+                'payment_screenshot_data',
+                'payment_screenshot_mime',
+                lambda item: f'/api/media/merchant-orders/{item.id}/payment_screenshot',
+            )
         db.session.commit()
 
     return app

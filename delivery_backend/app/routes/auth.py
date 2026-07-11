@@ -238,7 +238,7 @@ def user_image(user_id, field):
     return send_file(
         BytesIO(image_data),
         mimetype=getattr(user, mime_attr) or 'image/jpeg',
-        max_age=86400,
+        max_age=31536000,
     )
 
 

@@ -11,11 +11,15 @@ class MerchantOrder(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('merchant_products.id'), nullable=True)
     product_name = db.Column(db.String(120), nullable=False)
     product_image = db.Column(db.String(255), nullable=True)
+    product_image_data = db.Column(db.LargeBinary, nullable=True)
+    product_image_mime = db.Column(db.String(60), nullable=True)
     unit_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     total_price = db.Column(db.Float, nullable=False)
     payment_phone_from = db.Column(db.String(20), nullable=True)
     payment_screenshot = db.Column(db.String(255), nullable=True)
+    payment_screenshot_data = db.Column(db.LargeBinary, nullable=True)
+    payment_screenshot_mime = db.Column(db.String(60), nullable=True)
     buyer_name = db.Column(db.String(120), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='pending')
@@ -43,12 +47,18 @@ class MerchantOrder(db.Model):
             'client_phone': self.client.phone if self.client else None,
             'product_id': self.product_id,
             'product_name': self.product_name,
-            'product_image': self.product_image,
+            'product_image': (
+                f'/api/media/merchant-orders/{self.id}/product_image'
+                if self.product_image_data else self.product_image
+            ),
             'unit_price': self.unit_price,
             'quantity': self.quantity,
             'total_price': self.total_price,
             'payment_phone_from': self.payment_phone_from,
-            'payment_screenshot': self.payment_screenshot,
+            'payment_screenshot': (
+                f'/api/media/merchant-orders/{self.id}/payment_screenshot'
+                if self.payment_screenshot_data else self.payment_screenshot
+            ),
             'buyer_name': self.buyer_name,
             'notes': self.notes,
             'status': self.status,

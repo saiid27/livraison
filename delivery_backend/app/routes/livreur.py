@@ -1,12 +1,9 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from pathlib import Path
-from uuid import uuid4
-from werkzeug.utils import secure_filename
-import os
 
 from app import db
+from app.image_storage import read_image_upload
 from app.models.order import Order
 from app.models.user import User
 from app.models.payment_method import PaymentMethod
@@ -14,8 +11,6 @@ from app.models.recharge_request import RechargeRequest
 from app.models.cash_transaction import CashTransaction
 from app.utils.decorators import approved_captain_required
 from app.broadcast import compute_broadcast_state, is_in_broadcast_window
-
-_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
 
 livreur_bp = Blueprint('livreur', __name__)
 
@@ -279,25 +274,21 @@ def submit_recharge_request():
     if not method:
         return jsonify({'message': 'Moyen de paiement invalide'}), 400
 
-    screenshot_url = None
+    screenshot_data = None
+    screenshot_mime = None
     if 'screenshot' in request.files and request.files['screenshot'].filename:
-        upload = request.files['screenshot']
-        original = secure_filename(upload.filename or '')
-        ext = Path(original).suffix.lower()
-        if ext not in _ALLOWED_EXTS:
+        try:
+            screenshot_data, screenshot_mime = read_image_upload(request.files['screenshot'])
+        except ValueError:
             return jsonify({'message': 'Format image non pris en charge'}), 400
-        target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'recharges')
-        os.makedirs(target_dir, exist_ok=True)
-        filename = f'{uuid4().hex}{ext}'
-        upload.save(os.path.join(target_dir, filename))
-        screenshot_url = f'/uploads/recharges/{filename}'
 
     req = RechargeRequest(
         captain_id=user_id,
         payment_method_id=int(payment_method_id),
         amount=amount,
         phone_from=phone_from,
-        screenshot=screenshot_url,
+        screenshot_data=screenshot_data,
+        screenshot_mime=screenshot_mime,
     )
     db.session.add(req)
     db.session.commit()

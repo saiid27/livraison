@@ -11,6 +11,8 @@ class MerchantProduct(db.Model):
     price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=0)
     image = db.Column(db.String(255), nullable=True)
+    image_data = db.Column(db.LargeBinary, nullable=True)
+    image_mime = db.Column(db.String(60), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -32,7 +34,10 @@ class MerchantProduct(db.Model):
             'name': self.name,
             'price': self.price,
             'quantity': self.quantity,
-            'image': self.image,
+            'image': (
+                f'/api/media/products/{self.id}/image'
+                if self.image_data else self.image
+            ),
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

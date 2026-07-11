@@ -1,10 +1,7 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from pathlib import Path
-from uuid import uuid4
-from werkzeug.utils import secure_filename
-import os
 from app import db
+from app.image_storage import read_image_upload
 from app.models.order import Order
 from app.models.user import User
 from app.models.merchant_product import MerchantProduct
@@ -18,19 +15,6 @@ from app.delivery_locations import (
 from app.broadcast import compute_broadcast_state
 
 client_bp = Blueprint('client', __name__)
-_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
-
-
-def _save_payment_screenshot(upload):
-    original = secure_filename(upload.filename or '')
-    ext = Path(original).suffix.lower()
-    if ext not in _ALLOWED_EXTS:
-        raise ValueError('Format image non pris en charge')
-    target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'merchant_payments')
-    os.makedirs(target_dir, exist_ok=True)
-    filename = f'{uuid4().hex}{ext}'
-    upload.save(os.path.join(target_dir, filename))
-    return f'/uploads/merchant_payments/{filename}'
 
 
 @client_bp.route('/delivery-locations', methods=['GET'])
@@ -221,7 +205,9 @@ def create_product_order():
         return jsonify({'message': 'Quantité insuffisante'}), 400
 
     try:
-        payment_screenshot = _save_payment_screenshot(request.files['payment_screenshot'])
+        payment_screenshot_data, payment_screenshot_mime = read_image_upload(
+            request.files['payment_screenshot']
+        )
     except ValueError as error:
         return jsonify({'message': str(error)}), 400
 
@@ -232,11 +218,14 @@ def create_product_order():
         product_id=product.id,
         product_name=product.name,
         product_image=product.image,
+        product_image_data=product.image_data,
+        product_image_mime=product.image_mime,
         unit_price=product.price,
         quantity=quantity,
         total_price=product.price * quantity,
         payment_phone_from=payment_phone_from,
-        payment_screenshot=payment_screenshot,
+        payment_screenshot_data=payment_screenshot_data,
+        payment_screenshot_mime=payment_screenshot_mime,
         buyer_name=buyer_name,
         notes=notes,
     )

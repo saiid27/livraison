@@ -1,11 +1,7 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from pathlib import Path
-from uuid import uuid4
-from werkzeug.utils import secure_filename
-import os
-
 from app import db
+from app.image_storage import read_image_upload
 from app.models.user import User
 from app.models.merchant_product import MerchantProduct
 from app.models.merchant_order import MerchantOrder
@@ -13,43 +9,6 @@ from app.models.merchant_payment_method import MerchantPaymentMethod
 from app.utils.decorators import role_required
 
 merchant_bp = Blueprint('merchant', __name__)
-
-_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp'}
-_IMAGE_MIME_BY_EXT = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.webp': 'image/webp',
-}
-
-
-def _save_upload(upload, subfolder):
-    original = secure_filename(upload.filename or '')
-    ext = Path(original).suffix.lower()
-    if ext not in _ALLOWED_EXTS:
-        raise ValueError('Format image non pris en charge')
-    target_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], subfolder)
-    os.makedirs(target_dir, exist_ok=True)
-    filename = f'{uuid4().hex}{ext}'
-    upload.save(os.path.join(target_dir, filename))
-    return f'/uploads/{subfolder}/{filename}'
-
-
-def _save_product_image(upload):
-    return _save_upload(upload, 'products')
-
-
-def _read_image_upload(upload):
-    original = secure_filename(upload.filename or '')
-    ext = Path(original).suffix.lower()
-    mime_type = _IMAGE_MIME_BY_EXT.get(ext)
-    if not mime_type:
-        raise ValueError('Format image non pris en charge')
-    image_data = upload.read()
-    if not image_data:
-        raise ValueError('Image vide')
-    return image_data, mime_type
-
 
 def _float_value(value):
     try:
@@ -94,7 +53,7 @@ def update_profile():
     merchant.merchant_payment_phone = payment_phone or None
     if has_new_avatar:
         try:
-            image_data, mime_type = _read_image_upload(request.files['profile_image'])
+            image_data, mime_type = read_image_upload(request.files['profile_image'])
             merchant.avatar_data = image_data
             merchant.avatar_mime = mime_type
             merchant.avatar = f'/api/auth/images/{merchant.id}/avatar'
@@ -166,7 +125,7 @@ def create_product():
         return jsonify({'message': 'صورة المنتج إلزامية'}), 400
 
     try:
-        image_url = _save_product_image(request.files['image'])
+        image_data, mime_type = read_image_upload(request.files['image'])
     except ValueError as error:
         return jsonify({'message': str(error)}), 400
 
@@ -175,7 +134,8 @@ def create_product():
         name=name,
         price=price,
         quantity=quantity,
-        image=image_url,
+        image_data=image_data,
+        image_mime=mime_type,
     )
     db.session.add(product)
     db.session.commit()
@@ -207,7 +167,10 @@ def update_product(product_id):
         product.quantity = quantity
     if 'image' in request.files and request.files['image'].filename:
         try:
-            product.image = _save_product_image(request.files['image'])
+            image_data, mime_type = read_image_upload(request.files['image'])
+            product.image_data = image_data
+            product.image_mime = mime_type
+            product.image = f'/api/media/products/{product.id}/image'
         except ValueError as error:
             return jsonify({'message': str(error)}), 400
 
